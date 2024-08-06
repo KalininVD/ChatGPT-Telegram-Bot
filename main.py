@@ -10,7 +10,8 @@ import utils
 from utils import BASE_COMMANDS, UpdateBotCommands, SetUserCategory
 
 # Get the environment variables
-utils.SECRET_ID = os.environ.get('SECRET_ID')
+utils.ACCESS_KEY_ID = os.environ.get('ACCESS_KEY_ID')
+utils.SECRET_ACCESS_KEY = os.environ.get('SECRET_ACCESS_KEY')
 utils.DOCAPI_ENDPOINT = os.environ.get('DOCAPI_ENDPOINT')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 OWNER_TELEGRAM_ID = os.environ.get('OWNER_TELEGRAM_ID')

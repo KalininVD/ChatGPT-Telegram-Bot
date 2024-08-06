@@ -3,13 +3,11 @@ from telebot import TeleBot
 from telebot.types import BotCommand, BotCommandScopeChat
 from boto3 import Session
 from botocore.exceptions import ClientError
-import yandexcloud
-from yandex.cloud.lockbox.v1.payload_service_pb2 import GetPayloadRequest
-from yandex.cloud.lockbox.v1.payload_service_pb2_grpc import PayloadServiceStub
 from decimal import Decimal
 
 # Environment variables
-SECRET_ID: str | None = None
+ACCESS_KEY_ID: str | None = None
+SECRET_ACCESS_KEY: str | None = None
 DOCAPI_ENDPOINT: str | None = None
 
 # Service variables
@@ -144,26 +142,9 @@ def _get_boto_session() -> Session:
     if boto_session is not None:
         return boto_session
 
-    yc_sdk = yandexcloud.SDK()
-    channel = yc_sdk._channels.channel("lockbox-payload")
-    lockbox = PayloadServiceStub(channel)
-    response = lockbox.Get(GetPayloadRequest(secret_id=SECRET_ID))
-
-    access_key = None
-    secret_key = None
-
-    for entry in response.entries:
-        if entry.key == 'ACCESS_KEY_ID':
-            access_key = entry.text_value
-        elif entry.key == 'SECRET_ACCESS_KEY':
-            secret_key = entry.text_value
-
-    if access_key is None or secret_key is None:
-        raise Exception("secrets required")
-
     boto_session = Session(
-        aws_access_key_id=access_key,
-        aws_secret_access_key=secret_key
+        aws_access_key_id=ACCESS_KEY_ID,
+        aws_secret_access_key=SECRET_ACCESS_KEY
     )
 
     return boto_session
