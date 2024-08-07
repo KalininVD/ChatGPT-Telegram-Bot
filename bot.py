@@ -72,7 +72,7 @@ def HandleTextMessage(telegram_bot: TeleBot, message: Message):
 
 # Handle photo messages
 def HandlePhotoMessage(telegram_bot: TeleBot, message: Message):
-    telegram_bot.send_photo(message.chat.id, reply_to_message_id=message.message_id, photo=message.photo.file_id)
+    telegram_bot.send_photo(message.chat.id, reply_to_message_id=message.message_id, photo=message.photo[0].file_id)
 
 # Handle audio messages
 def HandleAudioMessage(telegram_bot: TeleBot, message: Message):
