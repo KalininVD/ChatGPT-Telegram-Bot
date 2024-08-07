@@ -21,14 +21,14 @@ def InitEnvVars(env_vars: dict):
 BASE_COMMANDS = [
     BotCommand('start', 'Get started with ChatGPT Telegram Bot'),
     BotCommand('help', 'Get help message of the bot'),
-    BotCommand('change_language', 'Change the language for the bot'),
+    BotCommand('language', 'Change the language for the bot'),
+    BotCommand('budget', 'Check the remaining budget of the bot'),
 ]
 
 # Define the commands for the users of the bot
 USER_COMMANDS = BASE_COMMANDS + [
     BotCommand('reset', 'Start a new conversation'),
     BotCommand('summarize', 'Summarize the last conversation'),
-    BotCommand('stats', 'Get the statistics of the bot usage'),
 ]
 
 # Define the commands for the admins of the bot
@@ -50,8 +50,11 @@ def UpdateBotCommands(telegram_bot: TeleBot, chat_id: int, user_id: int, user_na
             telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=ADMIN_COMMANDS)
         case 'user':
             telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=USER_COMMANDS)
+        case 'banned':
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=BASE_COMMANDS)
         case _:
             telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=BASE_COMMANDS)
+            SetCategory(user_id, user_name, 'banned')
 
 # Get the user's category
 def GetCategory(user_id: int, user_name: str) -> str:

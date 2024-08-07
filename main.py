@@ -1,11 +1,10 @@
 # Import necessary modules, classes and functions
 import os
 import json
-from telebot import TeleBot
 from telebot.types import Update, Message, CallbackQuery
 import bot
-from utils.telegram import BASE_COMMANDS, UpdateBotCommands, SetCategory
-from bot import InitServiceVars
+from utils.telegram import UpdateBotCommands
+from bot import InitServiceVars, InitBot
 
 # Read environment variables
 env_vars = {
@@ -25,9 +24,7 @@ env_vars = {
 InitServiceVars(env_vars)
 
 # Initialize the Telegram Bot
-telegram_bot = TeleBot(env_vars['TELEGRAM_BOT_TOKEN'], threaded=False)
-telegram_bot.set_my_commands(commands=BASE_COMMANDS)
-SetCategory(env_vars['OWNER_TELEGRAM_ID'], env_vars['OWNER_TELEGRAM_NAME'], 'owner')
+telegram_bot = InitBot(env_vars)
 
 
 # Handle incoming updates from Telegram
@@ -54,10 +51,16 @@ def help(message: Message):
     bot.Help(telegram_bot, message)
 
 # Change the bot's language for the user
-@telegram_bot.message_handler(commands=["change_language"])
-def change_language(message: Message):
+@telegram_bot.message_handler(commands=["language"])
+def language(message: Message):
     UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
-    bot.ChangeLanguage(telegram_bot, message)
+    bot.Language(telegram_bot, message)
+
+# Get the bot's budget for the user
+@telegram_bot.message_handler(commands=["budget"])
+def stats(message: Message):
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    bot.Budget(telegram_bot, message)
 
 # Reset the conversation history
 @telegram_bot.message_handler(commands=["reset"])
@@ -70,12 +73,6 @@ def reset(message: Message):
 def summarize(message: Message):
     UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
     bot.Summarize(telegram_bot, message)
-
-# Get the bot's statistics
-@telegram_bot.message_handler(commands=["stats"])
-def stats(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
-    bot.Stats(telegram_bot, message)
 
 # Get the bot's settings
 @telegram_bot.message_handler(commands=["settings"])

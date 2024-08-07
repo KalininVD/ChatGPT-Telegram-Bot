@@ -6,10 +6,12 @@ from utils.openai import OpenAIHelper
 from utils.plugins import PluginManager
 from utils.telegram_inline_keyboards import (GenKBUserCategoties, GenKBAdmins, GenKBUsers, GenKBBannedUsers,
                                              GenKBAdmin, GenKBUser, GenKBBanned, GenKBLanguage, GenKBModel, GenKBBudget,
-                                             GenKBDeleteAdmin, GenKBDeleteUser, GenKBDeleteBanned)
+                                             GenKBDeleteAdmin, GenKBDeleteUser, GenKBDeleteBanned,
+                                             GenKBLanguageGeneral, GenKBLanguageSettings, GenKBModelSettings, GenKBSettings)
 from utils.telegram import (GetCategory, GetLanguage, GetModel, GetBudget,
                             SetCategory, SetLanguage, SetModel, SetBudget,
                             DeleteUserInfo)
+from utils.telegram import BASE_COMMANDS
 from utils.telegram import InitEnvVars as InitTelegramEnvVars
 from utils.yandexcloud import InitEnvVars as InitYandexCloudEnvVars
 from utils.openai import InitEnvVars as InitOpenAIEnvVars
@@ -28,12 +30,23 @@ def InitServiceVars(vars: dict):
 
     openai_helper = OpenAIHelper()
     plugin_manager = PluginManager()
+
+# Initialize the bot
+def InitBot(vars: dict) -> TeleBot:
+    telegram_bot = TeleBot(vars['TELEGRAM_BOT_TOKEN'])
+    telegram_bot.set_my_commands(commands=BASE_COMMANDS)
     
+    SetCategory(vars['OWNER_TELEGRAM_ID'], vars['OWNER_TELEGRAM_NAME'], 'owner')
+
+    return telegram_bot
 
 # Handle incoming messages
 def HandleMessage(telegram_bot: TeleBot, message: Message):
     user = message.from_user
-    if GetCategory(user.id, user.username) in ('banned', 'unknown'):
+    user_id = user.id
+    user_name = user.username
+
+    if GetCategory(user_id, user_name) in ('banned', 'unknown'):
         SendBannedResponse(telegram_bot, message)
         return
 
@@ -101,13 +114,21 @@ def Help(telegram_bot: TeleBot, message: Message):
     telegram_bot.send_message(message.chat.id, "I can help you with your questions and tasks. Just send me a message and I'll do my best to answer it.")
 
 # Change the bot's language for the user
-def ChangeLanguage(telegram_bot: TeleBot, message: Message):
-    telegram_bot.send_message(message.chat.id, "# in the future you will be able to change the language of the bot #")
+def Language(telegram_bot: TeleBot, message: Message):
+    telegram_bot.send_message(message.chat.id, "Which language do you want to choose for the bot?", reply_markup=GenKBLanguageGeneral())
+
+# Get the bot's budget for the user
+def Budget(telegram_bot: TeleBot, message: Message):
+    user = message.from_user
+    telegram_bot.send_message(message.chat.id, f"Your current budget for the bot is {GetBudget(user.id, user.username)}$")
 
 # Reset the conversation history
 def Reset(telegram_bot: TeleBot, message: Message):
     user = message.from_user
-    if GetCategory(user.id, user.username) not in ('owner', 'admin', 'user'):
+    user_id = user.id
+    user_name = user.username
+
+    if GetCategory(user_id, user_name) not in ('owner', 'admin', 'user'):
         SendDisallowedResponse(telegram_bot, message)
         return
     
@@ -116,34 +137,34 @@ def Reset(telegram_bot: TeleBot, message: Message):
 # Summarize the conversation
 def Summarize(telegram_bot: TeleBot, message: Message):
     user = message.from_user
-    if GetCategory(user.id, user.username) not in ('owner', 'admin', 'user'):
+    user_id = user.id
+    user_name = user.username
+
+    if GetCategory(user_id, user_name) not in ('owner', 'admin', 'user'):
         SendDisallowedResponse(telegram_bot, message)
         return
     
     telegram_bot.send_message(message.chat.id, "# in the future you will be able to summarize the conversation #")
 
-# Get the bot's statistics
-def Stats(telegram_bot: TeleBot, message: Message):
-    user = message.from_user
-    if GetCategory(user.id, user.username) not in ('owner', 'admin', 'user'):
-        SendDisallowedResponse(telegram_bot, message)
-        return
-    
-    telegram_bot.send_message(message.chat.id, "# in the future you will be able to get the statistics of the bot #")
-
 # Get the bot's settings
 def Settings(telegram_bot: TeleBot, message: Message):
     user = message.from_user
-    if GetCategory(user.id, user.username) not in ('owner', 'admin'):
+    user_id = user.id
+    user_name = user.username
+
+    if GetCategory(user_id, user_name) not in ('owner', 'admin'):
         SendDisallowedResponse(telegram_bot, message)
         return
     
-    telegram_bot.send_message(message.chat.id, "# in the future you will be able to get the settings of the bot #")
+    telegram_bot.send_message(message.chat.id, "Which settings do you want to change for the bot?", reply_markup=GenKBSettings())
 
 # Manage users and admins of the bot
 def Users(telegram_bot: TeleBot, message: Message):
     user = message.from_user
-    if GetCategory(user.id, user.username) != 'owner':
+    user_id = user.id
+    user_name = user.username
+
+    if GetCategory(user_id, user_name) != 'owner':
         SendDisallowedResponse(telegram_bot, message)
         return
     
@@ -155,192 +176,189 @@ def SendDisallowedResponse(telegram_bot: TeleBot, message: Message):
 
 # Handle the callback query
 def HandleCallbackQuery(telegram_bot: TeleBot, call: CallbackQuery):
-    if GetCategory(call.from_user.id, call.from_user.username) != 'owner':
-        telegram_bot.answer_callback_query(call.id, "Sorry, you are not allowed to use this command. Please contact the bot owner for more information.", show_alert=True)
-        return
-
+    call_id = call.id
     message = call.message
     data = call.data
     chat_id = message.chat.id
     message_id = message.message_id
+    user = call.from_user
+    user_id = user.id
+    user_name = user.username
 
-    if data.startswith('manage_'):
-        data = data[7:]
+    if data.startswith('language'):
+        if data == 'language_en':
+            SetLanguage(user_id, user_name, 'en')
+            telegram_bot.answer_callback_query(call_id, f"Bot language was set to English")
+        elif data == 'language_ru':
+            SetLanguage(user_id, user_name, 'ru')
+            telegram_bot.answer_callback_query(call_id, f"Bot language was set to Russian")
+        
+        telegram_bot.edit_message_text(f"Which language do you want to choose for the bot?",
+                                       chat_id, message_id, reply_markup=GenKBLanguageGeneral())
 
-        if data == 'bot':
-            telegram_bot.edit_message_text("Let's manage the users of the Bot:",
-                                           chat_id, message_id, reply_markup=GenKBUserCategoties())
-        elif data == 'admins':
+    elif data.startswith('settings'):
+        if GetCategory(user_id, user_name) not in ('owner', 'admin'):
+            telegram_bot.answer_callback_query(call_id, "Sorry, you are not allowed to use this command. Please contact the bot owner for more information.", show_alert=True)
+            return
+
+        if data.startswith('settings_language'):
+            if data == 'settings_language_en':
+                SetLanguage(user_id, user_name, 'en')
+                telegram_bot.answer_callback_query(call_id, f"Bot language was set to English")
+
+            elif data == 'settings_language_ru':
+                SetLanguage(user_id, user_name, 'ru')
+                telegram_bot.answer_callback_query(call_id, f"Bot language was set to Russian")
+
+            telegram_bot.edit_message_text(f"Which language do you want to choose for the bot?",
+                                           chat_id, message_id, reply_markup=GenKBLanguageSettings())
+            
+        elif data.startswith('settings_model'):
+            if data == 'settings_model_gpt35':
+                SetModel(user_id, user_name, 'gpt-3.5-turbo')
+                telegram_bot.answer_callback_query(call_id, f"Chat model for the bot was set to gpt-3.5-turbo")
+            elif data == 'settings_model_gpt4':
+                SetModel(user_id, user_name, 'gpt-4')
+                telegram_bot.answer_callback_query(call_id, f"Chat model for the bot was set to gpt-4")
+                
+            telegram_bot.edit_message_text(f"Which chat model do you want to choose for the bot?",
+                                           chat_id, message_id, reply_markup=GenKBModelSettings())
+            
+        else:
+            telegram_bot.edit_message_text(f"Which settings do you want to change for the bot?",
+                                           chat_id, message_id, reply_markup=GenKBSettings())
+
+    elif data.startswith('manage'):
+        if GetCategory(user_id, user_name) != 'owner':
+            telegram_bot.answer_callback_query(call_id, "Sorry, you are not allowed to use this command. Please contact the bot owner for more information.", show_alert=True)
+            return
+
+        if data == 'manage_admins':
             telegram_bot.edit_message_text("Managing admins of the Bot:",
                                            chat_id, message_id, reply_markup=GenKBAdmins())
-        elif data == 'users':
+        elif data == 'manage_users':
             telegram_bot.edit_message_text("Managing users of the Bot:",
                                            chat_id, message_id, reply_markup=GenKBUsers())
-        elif data == 'banned':
+        elif data == 'manage_banned':
             telegram_bot.edit_message_text("Managing banned users of the Bot:",
                                            chat_id, message_id, reply_markup=GenKBBannedUsers())
-        elif data.startswith('admin_'):
-            user_id = int(data[6:])
+        
+        elif data.startswith('manage_admin_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
             telegram_bot.edit_message_text(f"What do you want to do for the admin {user_name}?",
                                            chat_id, message_id, reply_markup=GenKBAdmin(user_id))
-        elif data.startswith('user_'):
-            user_id = int(data[5:])
+        elif data.startswith('manage_user_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
             telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
                                            chat_id, message_id, reply_markup=GenKBUser(user_id))
-        elif data.startswith('banned_'):
-            user_id = int(data[7:])
+        elif data.startswith('manage_banned_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
             telegram_bot.edit_message_text(f"What do you want to do with the banned user {user_name}?",
                                            chat_id, message_id, reply_markup=GenKBBanned(user_id))
-        elif data.startswith('language_'):
-            user_id = int(data[9:])
+        
+        elif data.startswith('manage_role_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
+
+            if data.startswith('manage_role_admin_'):
+                SetCategory(user_id, user_name, 'admin')
+                telegram_bot.answer_callback_query(call_id, f"User {user_name} is now an Admin of the Bot", show_alert=True)
+            elif data.startswith('manage_role_user_'):
+                SetCategory(user_id, user_name, 'user')
+                telegram_bot.answer_callback_query(call_id, f"User {user_name} is now a User of the Bot", show_alert=True)
+            elif data.startswith('manage_role_banned_'):
+                SetCategory(user_id, user_name, 'banned')
+                telegram_bot.answer_callback_query(call_id, f"User {user_name} is now a Banned User of the Bot", show_alert=True)
+            
+            telegram_bot.edit_message_text("Let's manage the users of the Bot:",
+                                           chat_id, message_id, reply_markup=GenKBUserCategoties())
+
+        elif data.startswith('manage_language_'):
+            user_id = int(data.split('_')[-1])
+            user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
+            
+            if data.startswith('manage_language_en_'):
+                SetLanguage(user_id, user_name, 'en')
+                telegram_bot.answer_callback_query(call_id, f"Bot language for the user {user_name} was set to English")
+            elif data.startswith('manage_language_ru_'):
+                SetLanguage(user_id, user_name, 'ru')
+                telegram_bot.answer_callback_query(call_id, f"Bot language for the user {user_name} was set to Russian")
+            
             telegram_bot.edit_message_text(f"Which language do you want to choose for the user {user_name}?\n" +
                                            f"(Current language: {GetLanguage(user_id, user_name)})",
                                            chat_id, message_id, reply_markup=GenKBLanguage(user_id))
-        elif data.startswith('model_'):
-            user_id = int(data[6:])
+        
+        elif data.startswith('manage_model_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
+
+            if data.startswith('manage_model_gpt35_'):
+                SetModel(user_id, user_name, 'gpt-3.5-turbo')
+                telegram_bot.answer_callback_query(call_id, f"Bot model for the user {user_name} was set to gpt-3.5-turbo")
+            elif data.startswith('manage_model_gpt4_'):
+                SetModel(user_id, user_name, 'gpt-4')
+                telegram_bot.answer_callback_query(call_id, f"Bot model for the user {user_name} was set to gpt-4")
+            
             telegram_bot.edit_message_text(f"Which model do you want to choose for the user {user_name}?\n" +
                                            f"(Current model: {GetModel(user_id, user_name)})",
                                            chat_id, message_id, reply_markup=GenKBModel(user_id))
-        elif data.startswith('budget_'):
-            user_id = int(data[7:])
+
+        elif data.startswith('manage_budget_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
+            
+            if data.startswith('manage_budget_increase_'):
+                SetBudget(user_id, user_name, Decimal(GetBudget(user_id, user_name)) + Decimal(0.1))
+                telegram_bot.answer_callback_query(call_id, f"Bot budget for the user {user_name} was increased by 0.1$ and is now {GetBudget(user_id, user_name)}$")
+            elif data.startswith('manage_budget_decrease_'):
+                if GetBudget(user_id, user_name) > Decimal(0.1):
+                    SetBudget(user_id, user_name, Decimal(GetBudget(user_id, user_name)) - Decimal(0.1))
+                    telegram_bot.answer_callback_query(call_id, f"Bot budget for the user {user_name} was decreased by 0.1$ and is now {GetBudget(user_id, user_name)}$")
+                else:
+                    SetBudget(user_id, user_name, Decimal(0))
+                    telegram_bot.answer_callback_query(call_id, f"Bot budget for the user {user_name} was set to 0$")
+                    
             telegram_bot.edit_message_text(f"What do you want to do with the budget of the user {user_name}?\n" +
                                            f"(Current budget: {GetBudget(user_id, user_name)})",
                                            chat_id, message_id, reply_markup=GenKBBudget(user_id))
-        else:
-            telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-
-    elif data.startswith('change_'):
-        data = data[7:]
-
-        if data.startswith('role_'):
-            data = data[5:]
-
-            if data.startswith('admin_'):
-                user_id = int(data[6:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetCategory(user_id, user_name, 'admin')
-                telegram_bot.answer_callback_query(call.id, f"User {user_name} is now an Admin of the Bot", show_alert=True)
-                telegram_bot.edit_message_text("Let's manage the users of the Bot:",
-                                               chat_id, message_id, reply_markup=GenKBUserCategoties())
-            elif data.startswith('user_'):
-                user_id = int(data[5:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetCategory(user_id, user_name, 'user')
-                telegram_bot.answer_callback_query(call.id, f"User {user_name} is now a User of the Bot", show_alert=True)
-                telegram_bot.edit_message_text("Let's manage the users of the Bot:",
-                                               chat_id, message_id, reply_markup=GenKBUserCategoties())
-            elif data.startswith('banned_'):
-                user_id = int(data[7:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetCategory(user_id, user_name, 'banned')
-                telegram_bot.answer_callback_query(call.id, f"User {user_name} is now a Banned User of the Bot", show_alert=True)
-                telegram_bot.edit_message_text("Let's manage the users of the Bot:",
-                                               chat_id, message_id, reply_markup=GenKBUserCategoties())
-            else:
-                telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-
-        elif data.startswith('language_'):
-            data = data[9:]
-
-            if data.startswith('en_'):
-                user_id = int(data[3:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetLanguage(user_id, user_name, 'en')
-                telegram_bot.answer_callback_query(call.id, f"Bot language for the user {user_name} was set to English")
-                telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                               chat_id, message_id, reply_markup=GenKBUser(user_id))
-            elif data.startswith('ru_'):
-                user_id = int(data[3:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetLanguage(user_id, user_name, 'ru')
-                telegram_bot.answer_callback_query(call.id, f"Bot language for the user {user_name} was set to Russian")
-                telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                               chat_id, message_id, reply_markup=GenKBUser(user_id))
-            else:
-                telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-
-        elif data.startswith('model_'):
-            data = data[6:]
-
-            if data.startswith('gpt35_'):
-                user_id = int(data[6:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetModel(user_id, user_name, 'gpt-3.5-turbo')
-                telegram_bot.answer_callback_query(call.id, f"Bot model for the user {user_name} was set to gpt-3.5-turbo")
-                telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                               chat_id, message_id, reply_markup=GenKBUser(user_id))
-            elif data.startswith('gpt4_'):
-                user_id = int(data[6:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetModel(user_id, user_name, 'gpt-4')
-                telegram_bot.answer_callback_query(call.id, f"Bot model for the user {user_name} was set to gpt-4")
-                telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                               chat_id, message_id, reply_markup=GenKBUser(user_id))
-            else:
-                telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-
-        elif data.startswith('budget_'):
-            data = data[7:]
-
-            if data.startswith('plus_'):
-                user_id = int(data[5:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                SetBudget(user_id, user_name, Decimal(GetBudget(user_id, user_name)) + Decimal(0.1))
-                telegram_bot.answer_callback_query(call.id, f"Bot budget for the user {user_name} was increased by 0.1 and is now {GetBudget(user_id, user_name)}")
-                telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                               chat_id, message_id, reply_markup=GenKBUser(user_id))
-            elif data.startswith('minus_'):
-                user_id = int(data[6:])
-                user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-                if GetBudget(user_id, user_name) > Decimal(0.1):
-                    SetBudget(user_id, user_name, Decimal(GetBudget(user_id, user_name)) - Decimal(0.1))
-                    telegram_bot.answer_callback_query(call.id, f"Bot budget for the user {user_name} was decreased by 0.1 and is now {GetBudget(user_id, user_name)}")
-                    telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                                   chat_id, message_id, reply_markup=GenKBUser(user_id))
-                else:
-                    SetBudget(user_id, user_name, Decimal(0))
-                    telegram_bot.answer_callback_query(call.id, f"Bot budget for the user {user_name} was set to 0")
-                    telegram_bot.edit_message_text(f"What do you want to do for the user {user_name}?",
-                                                   chat_id, message_id, reply_markup=GenKBUser(user_id))
-            else:
-                telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-
-        else:
-            telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
-    
-    elif data.startswith('delete_'):
-        data = data[7:]
-
-        if data.startswith('admin_'):
-            user_id = int(data[6:])
+        
+        elif data.startswith('manage_delete_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-            telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} from the database of the Bot?",
-                                           chat_id, message_id, reply_markup=GenKBDeleteAdmin(user_id))
-        elif data.startswith('user_'):
-            user_id = int(data[5:])
+            
+            if data.startswith('manage_delete_admin_'):
+                telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} (is now an Admin) from the database of the Bot?",
+                                               chat_id, message_id, reply_markup=GenKBDeleteAdmin(user_id))
+            elif data.startswith('manage_delete_user_'):
+                telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} (is now a User) from the database of the Bot?",
+                                               chat_id, message_id, reply_markup=GenKBDeleteUser(user_id))
+            else:
+                telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} (is now a Banned User) from the database of the Bot?",
+                                               chat_id, message_id, reply_markup=GenKBDeleteBanned(user_id))
+            
+        elif data.startswith('manage_remove_'):
+            user_id = int(data.split('_')[-1])
             user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-            telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} from the database of the Bot?",
-                                           chat_id, message_id, reply_markup=GenKBDeleteUser(user_id))
-        elif data.startswith('banned_'):
-            user_id = int(data[7:])
-            user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
-            telegram_bot.edit_message_text(f"Do you want to delete the user {user_name} from the database of the Bot?",
-                                           chat_id, message_id, reply_markup=GenKBDeleteBanned(user_id))
-        elif data.startswith('confirmed_'):
-            user_id = int(data[9:])
-            user_name = telegram_bot.get_chat_member(chat_id, user_id).user.username
+            
             DeleteUserInfo(user_id, user_name)
-            telegram_bot.answer_callback_query(call.id, f"User {user_name} was totally deleted from the database of the Bot", show_alert=True)
+            telegram_bot.answer_callback_query(call_id, f"User {user_name} was totally deleted from the database of the Bot", show_alert=True)
+            
+            if data.startswith('manage_remove_admin_'):
+                telegram_bot.edit_message_text("Managing admins of the Bot:",
+                                               chat_id, message_id, reply_markup=GenKBAdmins())
+            elif data.startswith('manage_remove_user_'):
+                telegram_bot.edit_message_text("Managing users of the Bot:",
+                                               chat_id, message_id, reply_markup=GenKBUsers())
+            else:
+                telegram_bot.edit_message_text("Managing banned users of the Bot:",
+                                               chat_id, message_id, reply_markup=GenKBBannedUsers())
+
+        else:
             telegram_bot.edit_message_text("Let's manage the users of the Bot:",
                                            chat_id, message_id, reply_markup=GenKBUserCategoties())
-        else:
-            telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
 
     else:
-        telegram_bot.answer_callback_query(call.id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
+        telegram_bot.answer_callback_query(call_id, "Something went wrong inside the bot. Try to repeat the command later or contact the bot owner for more information.", show_alert=True)
