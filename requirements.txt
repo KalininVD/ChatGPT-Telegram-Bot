@@ -1,3 +1,6 @@
 pyTelegramBotAPI
 boto3
 yandexcloud
+openai
+wolframalpha
+duckduckgo_search
