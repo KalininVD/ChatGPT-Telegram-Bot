@@ -21,25 +21,24 @@ boto_session = None
 docapi_table = None
 
 # Query to the database for finding user's information
-def query_find(user_id: Decimal, user_name: str) -> dict | None:
+def query_find(id: Decimal) -> dict | None:
     table = _get_docapi_table()
 
     response = table.get_item(
         Key = {
-            'user_id': user_id,
-            'user_name': user_name
+            'id': id
         }
     )
 
     return response
 
 # Query to the database for searching for users' information by the specified role
-def query_search(user_role: str):
+def query_search(role: str):
     table = _get_docapi_table()
 
     scan_kwargs = {
-        'FilterExpression': Key('info.user_role').eq(user_role),
-        'ProjectionExpression': "user_id, user_name, info.user_role, info.language, info.chat_model, info.remaining_budget"
+        'FilterExpression': Key('info.role').eq(role),
+        'ProjectionExpression': "id, info.name, info.role, info.language, info.model, info.budget"
     }
 
     users = []
@@ -60,18 +59,18 @@ def query_search(user_role: str):
     return {'Items': users}
 
 # Query to the database for inserting data about new user
-def query_insert(user_id: Decimal, user_name: str, user_role: str, language: str, chat_model: str, remaining_budget: Decimal):
+def query_insert(id: Decimal, name: str, role: str, language: str, model: str, budget: Decimal):
     table = _get_docapi_table()
 
     response = table.put_item(
         Item = {
-            'user_id': user_id,
-            'user_name': user_name,
+            'id': id,
             'info': {
-                'user_role': user_role,
+                'name': name,
+                'role': role,
                 'language': language,
-                'chat_model': chat_model,
-                'remaining_budget': remaining_budget
+                'model': model,
+                'budget': budget
             }
         }
     )
@@ -79,20 +78,20 @@ def query_insert(user_id: Decimal, user_name: str, user_role: str, language: str
     return response
 
 # Query to the database for updating user's information
-def query_update(user_id: Decimal, user_name: str, user_role: str, language: str, chat_model: str, remaining_budget: Decimal):
+def query_update(id: Decimal, name: str, role: str, language: str, model: str, budget: Decimal):
     table = _get_docapi_table()
 
     response = table.update_item(
         Key = {
-            'user_id': user_id,
-            'user_name': user_name
+            'id': id
         },
-        UpdateExpression = "set info.user_role = :r, info.language = :l, info.chat_model = :m, info.remaining_budget = :b",
+        UpdateExpression = "set info.name = :n, info.role = :r, info.language = :l, info.model = :m, info.budget = :b",
         ExpressionAttributeValues = {
-            ':r': user_role,
+            ':n': name,
+            ':r': role,
             ':l': language,
-            ':m': chat_model,
-            ':b': remaining_budget
+            ':m': model,
+            ':b': budget
         },
         ReturnValues = "UPDATED_NEW"
     )
@@ -100,13 +99,12 @@ def query_update(user_id: Decimal, user_name: str, user_role: str, language: str
     return response
 
 # Query to the database for deleting user's information
-def query_delete(user_id: Decimal, user_name: str):
+def query_delete(id: Decimal):
     table = _get_docapi_table()
     
     response = table.delete_item(
         Key = {
-            'user_id': user_id,
-            'user_name': user_name
+            'id': id
         }
     )
 

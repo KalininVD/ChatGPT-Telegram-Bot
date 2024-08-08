@@ -41,61 +41,61 @@ def handler(event, _):
 # Introduce the bot to the user
 @telegram_bot.message_handler(commands=["start"])
 def start(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Start(telegram_bot, message)
 
 # Get the bot's help message
 @telegram_bot.message_handler(commands=["help"])
 def help(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Help(telegram_bot, message)
 
 # Change the bot's language for the user
 @telegram_bot.message_handler(commands=["language"])
 def language(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Language(telegram_bot, message)
 
 # Get the bot's budget for the user
 @telegram_bot.message_handler(commands=["budget"])
 def stats(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Budget(telegram_bot, message)
 
 # Reset the conversation history
 @telegram_bot.message_handler(commands=["reset"])
 def reset(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Reset(telegram_bot, message)
 
 # Summarize the conversation history
 @telegram_bot.message_handler(commands=["summarize"])
 def summarize(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Summarize(telegram_bot, message)
 
 # Get the bot's settings
 @telegram_bot.message_handler(commands=["settings"])
 def settings(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Settings(telegram_bot, message)
 
 # Manage users and admins of the bot
 @telegram_bot.message_handler(commands=["users"])
 def users(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.Users(telegram_bot, message)
 
 
 # Handle all other messages
 @telegram_bot.message_handler(func=lambda message: True, content_types=['animation', 'audio', 'contact', 'dice', 'document', 'location', 'photo', 'poll', 'sticker', 'text', 'venue', 'video', 'video_note', 'voice'])
 def handle_message(message: Message):
-    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id, message.from_user.username)
+    UpdateBotCommands(telegram_bot, message.chat.id, message.from_user.id)
     bot.HandleMessage(telegram_bot, message)
 
 
 # Handle the callback query
 @telegram_bot.callback_query_handler(func=lambda call: True)
 def callback_query(call: CallbackQuery):
-    UpdateBotCommands(telegram_bot, call.message.chat.id, call.from_user.id, call.from_user.username)
+    UpdateBotCommands(telegram_bot, call.message.chat.id, call.from_user.id)
     bot.HandleCallbackQuery(telegram_bot, call)

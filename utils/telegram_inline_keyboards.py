@@ -17,7 +17,7 @@ def GenKBAdmins() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(row_width=2)
 
     for user in GetUsersByCategory('admin'):
-        keyboard.add(InlineKeyboardButton(text=user['user_name'], callback_data=f"manage_admin_{user['user_id']}"))
+        keyboard.add(InlineKeyboardButton(text=user['info']['name'], callback_data=f"manage_admin_{user['id']}"))
     
     keyboard.add(InlineKeyboardButton(text="Back", callback_data="manage"))
 
@@ -28,7 +28,7 @@ def GenKBUsers() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(row_width=2)
 
     for user in GetUsersByCategory('user'):
-        keyboard.add(InlineKeyboardButton(text=user['user_name'], callback_data=f"manage_user_{user['user_id']}"))
+        keyboard.add(InlineKeyboardButton(text=user['info']['name'], callback_data=f"manage_user_{user['id']}"))
     
     keyboard.add(InlineKeyboardButton(text="Back", callback_data="manage"))
 
@@ -39,7 +39,7 @@ def GenKBBannedUsers() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(row_width=2)
 
     for user in GetUsersByCategory('banned'):
-        keyboard.add(InlineKeyboardButton(text=user['user_name'], callback_data=f"manage_banned_{user['user_id']}"))
+        keyboard.add(InlineKeyboardButton(text=user['info']['name'], callback_data=f"manage_banned_{user['id']}"))
     
     keyboard.add(InlineKeyboardButton(text="Back", callback_data="manage"))
 
