@@ -4,6 +4,7 @@ from telebot.types import BotCommand, BotCommandScopeChat
 from decimal import Decimal
 from utils.yandexcloud import query_find, query_search, query_insert, query_update, query_delete
 from utils.openai import CHAT_MODELS
+from utils.translations import get_translation as Translate
 
 # Define environment variables
 TELEGRAM_BOT_TOKEN: str | None = None
@@ -19,42 +20,48 @@ def InitEnvVars(env_vars: dict):
     OWNER_TELEGRAM_NAME = env_vars.get('OWNER_TELEGRAM_NAME')
 
 # Define base commands for the bot
-BASE_COMMANDS = [
-    BotCommand('start', 'Get started with ChatGPT Telegram Bot'),
-    BotCommand('help', 'Get help message of the bot'),
-    BotCommand('language', 'Change the language for the bot'),
-    BotCommand('budget', 'Check the remaining budget of the bot'),
-]
+def GetBaseCommands(language: str = "en") -> list[BotCommand]:
+    return [
+        BotCommand('start', Translate(language, "start_command_description")),
+        BotCommand('help', Translate(language, "help_command_description")),
+        BotCommand('language', Translate(language, "language_command_description")),
+        BotCommand('budget', Translate(language, "budget_command_description")),
+    ]
 
 # Define the commands for the users of the bot
-USER_COMMANDS = BASE_COMMANDS + [
-    BotCommand('reset', 'Start a new conversation'),
-    BotCommand('summarize', 'Summarize the last conversation'),
-]
+def GetUserCommands(language: str = "en") -> list[BotCommand]:
+    return GetBaseCommands(language) + [
+        BotCommand('reset', Translate(language, "reset_command_description")),
+        BotCommand('summarize', Translate(language, "summarize_command_description")),
+    ]
 
 # Define the commands for the admins of the bot
-ADMIN_COMMANDS = USER_COMMANDS + [
-    BotCommand('settings', 'Get the bot settings'),
-]
+def GetAdminCommands(language: str = "en") -> list[BotCommand]:
+    return GetUserCommands(language) + [
+        BotCommand('settings', Translate(language, "settings_command_description")),
+    ]
 
 # Define the commands for the owner of the bot
-OWNER_COMMANDS = ADMIN_COMMANDS + [
-    BotCommand('users', 'Manage users and admins of the bot'),
-]
+def GetOwnerCommands(language: str = "en") -> list[BotCommand]:
+    return GetAdminCommands(language) + [
+        BotCommand('users', Translate(language, "users_command_description")),
+    ]
 
 # Update the bot's commands for the specified user
 def UpdateBotCommands(telegram_bot: TeleBot, chat_id: int, user_id: int):
+    lang = GetLanguage(user_id)
+
     match GetCategory(user_id):
         case 'owner':
-            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=OWNER_COMMANDS)
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=GetOwnerCommands(lang))
         case 'admin':
-            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=ADMIN_COMMANDS)
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=GetAdminCommands(lang))
         case 'user':
-            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=USER_COMMANDS)
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=GetUserCommands(lang))
         case 'banned':
-            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=BASE_COMMANDS)
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=GetBaseCommands(lang))
         case _:
-            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=BASE_COMMANDS)
+            telegram_bot.set_my_commands(scope=BotCommandScopeChat(chat_id), commands=GetBaseCommands(lang))
             SetCategory(user_id, 'banned')
             SetName(user_id, telegram_bot.get_chat_member(chat_id, user_id).user.username)
 
