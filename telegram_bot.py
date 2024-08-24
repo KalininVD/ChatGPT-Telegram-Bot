@@ -11,7 +11,7 @@ from utils.telegram import (
     SetName, SetCategory, SetLanguage, SetModel, SetBudget,
     DeleteUserInfo
 )
-from utils.telegram import GetBaseCommands
+from utils.telegram import GetBaseCommands, UpdateBotCommands
 from utils.telegram import InitEnvVars as InitTelegramEnvVars
 from utils.yandexcloud import InitEnvVars as InitYandexCloudEnvVars
 from utils.openai import InitEnvVars as InitOpenAIEnvVars
@@ -205,12 +205,18 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
         inform = False
         if data == 'language_ru':
             SetLanguage(user_id, 'ru')
+            UpdateBotCommands(bot, call.message.chat.id, user_id)
             lang = "ru"
             answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
         else:
             SetLanguage(user_id, 'en')
+            UpdateBotCommands(bot, call.message.chat.id, user_id)
             lang = "en"
             answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
+        
+        edit = True
+        text = Translate(lang, "language_command_text")
+        keyboard = kb_gen.LanguageGeneral()
 
     elif GetCategory(user_id) in ('unknown', 'banned', 'user'):
         inform = True
@@ -229,12 +235,18 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             inform = False
             if data == 'settings_language_ru':
                 SetLanguage(user_id, 'ru')
+                UpdateBotCommands(bot, call.message.chat.id, user_id)
                 lang = "ru"
                 answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
             else:
                 SetLanguage(user_id, 'en')
+                UpdateBotCommands(bot, call.message.chat.id, user_id)
                 lang = "en"
                 answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
+            
+            edit = True
+            text = Translate(lang, "language_command_text")
+            keyboard = kb_gen.LanguageSettings(lang)
 
         elif data == 'settings_model':
             edit = True
@@ -243,14 +255,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
         elif data.startswith('settings_model_'):
             inform = False
             model = data.split('_')[-1]
-            for chat_model in CHAT_MODELS:
-                if model == chat_model:
-                    SetModel(user_id, model)
-                    answer = f"{Translate(lang, 'model_changed')} {model}"
-                    break
+            if SetModel(user_id, model):
+                answer = f"{Translate(lang, 'chat_model_changed')} {model}"
             else:
                 SetModel(user_id, 'gpt-4o-mini')
-                answer = f"{Translate(lang, "model_changed")} GPT-4o-mini"
+                answer = f"{Translate(lang, "chat_model_changed")} GPT-4o-mini"
 
         else:
             inform = True
@@ -300,28 +309,31 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
 
                 if data == 'manage_role_admin':
                     SetCategory(user_id, 'admin')
-                    answer = f"{Translate(lang, 'manage_role_start')} {Translate(lang, 'admin')} {Translate(lang, 'manage_role_end')}"
+                    answer = f"{Translate(lang, 'user')} @{user_name} {Translate(lang, 'manage_role_start')} {Translate(lang, 'admin')} {Translate(lang, 'manage_role_end')}"
                 elif data == 'manage_role_user':
                     SetCategory(user_id, 'user')
-                    answer = f"{Translate(lang, 'manage_role_start')} {Translate(lang, 'user')} {Translate(lang, 'manage_role_end')}"
+                    answer = f"{Translate(lang, 'user')} @{user_name} {Translate(lang, 'manage_role_start')} {Translate(lang, 'user')} {Translate(lang, 'manage_role_end')}"
                 else:
                     SetCategory(user_id, 'banned')
-                    answer = f"{Translate(lang, 'manage_role_start')} {Translate(lang, 'banned')} {Translate(lang, 'manage_role_end')}"
+                    answer = f"{Translate(lang, 'user')} @{user_name} {Translate(lang, 'manage_role_start')} {Translate(lang, 'banned')} {Translate(lang, 'manage_role_end')}"
             
             elif data == 'manage_language':
                 edit = True
-                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language')})"
+                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(GetLanguage(user_id), 'language')})"
                 keyboard = kb_gen.Language(user_id, lang)
             elif data.startswith('manage_language_'):
                 inform = False
                 if data == 'manage_language_ru':
                     SetLanguage(user_id, 'ru')
-                    lang = "ru"
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language')}"
+                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate('ru', 'language')}"
+                    text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_ru')})"
                 else:
                     SetLanguage(user_id, 'en')
-                    lang = "en"
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language')}"
+                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate('en', 'language')}"
+                    text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_en')})"
+                
+                edit = True
+                keyboard = kb_gen.Language(user_id, lang)
 
             elif data == 'manage_model':
                 edit = True
@@ -330,14 +342,15 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             elif data.startswith('manage_model_'):
                 inform = False
                 model = data.split('_')[-1]
-                for chat_model in CHAT_MODELS:
-                    if model == chat_model:
-                        SetModel(user_id, model)
-                        answer = f"{Translate(lang, 'manage_model_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_model_successful_end')} {model}"
-                        break
+                if SetModel(user_id, model):
+                    answer = f"{Translate(lang, 'manage_model_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_model_successful_end')} {model}"
                 else:
                     SetModel(user_id, 'gpt-4o-mini')
                     answer = f"{Translate(lang, 'manage_model_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_model_successful_end')} GPT-4o-mini"
+                
+                edit = True
+                text = f"{Translate(lang, 'manage_model_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_model_end')} {GetModel(user_id)})"
+                keyboard = kb_gen.Model(user_id, lang)
 
             elif data == 'manage_budget':
                 edit = True
@@ -355,6 +368,10 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                     else:
                         SetBudget(user_id, Decimal(0))
                         answer = f"{Translate(lang, 'manage_budget_zero_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_zero_end')}"
+                
+                edit = True
+                text = f"{Translate(lang, 'manage_budget_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_budget_end')} {GetBudget(user_id)}$)"
+                keyboard = kb_gen.Budget(user_id, lang)
 
             elif data.startswith('manage_delete_'):
                 edit = True

@@ -161,7 +161,7 @@ def Model(user_id: int, language: str = "en") -> InlineKeyboardMarkup:
     
     if len(keyboard[-1]) == 2:
         keyboard.append([])
-    keyboard[1].append(InlineKeyboardButton(text=Translate(language, "back_button"), callback_data=f"manage_user_{user_id}"))
+    keyboard[-1].append(InlineKeyboardButton(text=Translate(language, "back_button"), callback_data=f"manage_user_{user_id}"))
 
     return InlineKeyboardMarkup(keyboard)
 
