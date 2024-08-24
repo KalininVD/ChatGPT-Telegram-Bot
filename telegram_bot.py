@@ -325,11 +325,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 inform = False
                 if data == 'manage_language_ru':
                     SetLanguage(user_id, 'ru')
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate('ru', 'language')}"
+                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language_button_ru')}"
                     text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_ru')})"
                 else:
                     SetLanguage(user_id, 'en')
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate('en', 'language')}"
+                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language_button_en')}"
                     text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_en')})"
                 
                 edit = True
