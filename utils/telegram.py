@@ -3,6 +3,7 @@ from telebot import TeleBot
 from telebot.types import BotCommand, BotCommandScopeChat
 from decimal import Decimal
 from utils.yandexcloud import query_find, query_search, query_insert, query_update, query_delete
+from utils.openai import CHAT_MODELS
 
 # Define environment variables
 TELEGRAM_BOT_TOKEN: str | None = None
@@ -124,7 +125,7 @@ def SetName(id: int, name: str) -> bool:
             name=name,
             role="banned",
             language="en",
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             remaining_budget=Decimal(0)
         )
     
@@ -152,7 +153,7 @@ def SetCategory(id: int, role: str) -> bool:
             name="unknown",
             role=role,
             language="en",
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             budget=Decimal(0)
         )
     
@@ -180,7 +181,7 @@ def SetLanguage(id: int, language: str) -> bool:
             name="unknown",
             role="banned",
             language=language,
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             budget=Decimal(0)
         )
     
@@ -188,7 +189,7 @@ def SetLanguage(id: int, language: str) -> bool:
 
 # Set the user's chat model
 def SetModel(id: int, model: str) -> bool:
-    if model not in ('gpt-3.5-turbo', 'gpt-4'):
+    if model not in CHAT_MODELS:
         return False
 
     user = GetUserInfo(id)
@@ -216,9 +217,6 @@ def SetModel(id: int, model: str) -> bool:
 
 # Set the user's remaining budget
 def SetBudget(id: int, budget: Decimal) -> bool:
-    if budget < 0:
-        return False
-
     user = GetUserInfo(id)
     
     if user:
@@ -236,7 +234,7 @@ def SetBudget(id: int, budget: Decimal) -> bool:
             name="unknown",
             role="banned",
             language="en",
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             budget=budget
         )
     

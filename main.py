@@ -18,6 +18,7 @@ env_vars = {
     'WOLFRAM_APP_ID': os.environ.get('WOLFRAM_APP_ID'),
     'DUCKDUCKGO_SAFESEARCH': os.environ.get('DUCKDUCKGO_SAFESEARCH'),
     'WORLDTIME_DEFAULT_TIMEZONE': os.environ.get('WORLDTIME_DEFAULT_TIMEZONE'),
+    'PROXY': os.environ.get('PROXY'),
 }
 
 # Initialize environment variables

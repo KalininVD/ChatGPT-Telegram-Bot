@@ -5,9 +5,11 @@ from telebot.types import Message, CallbackQuery
 from utils.openai import OpenAIHelper
 from utils.plugins import PluginManager
 import utils.inline_keyboards as kb_gen
-from utils.telegram import (GetName, GetCategory, GetLanguage, GetModel, GetBudget,
-                            SetName, SetCategory, SetLanguage, SetModel, SetBudget,
-                            DeleteUserInfo)
+from utils.telegram import (
+    GetName, GetCategory, GetLanguage, GetModel, GetBudget,
+    SetName, SetCategory, SetLanguage, SetModel, SetBudget,
+    DeleteUserInfo
+)
 from utils.telegram import BASE_COMMANDS
 from utils.telegram import InitEnvVars as InitTelegramEnvVars
 from utils.yandexcloud import InitEnvVars as InitYandexCloudEnvVars
@@ -18,7 +20,7 @@ from utils.plugins import InitEnvVars as InitPluginEnvVars
 openai_helper: OpenAIHelper | None = None
 plugin_manager: PluginManager | None = None
 
-# Initialize environment variables
+# Initialize all environment variables
 def InitServiceVars(vars: dict):
     for InitFunc in (InitYandexCloudEnvVars, InitTelegramEnvVars, InitOpenAIEnvVars, InitPluginEnvVars):
         InitFunc(vars)
@@ -30,6 +32,9 @@ def InitServiceVars(vars: dict):
 
 # Initialize the bot
 def InitBot(vars: dict) -> TeleBot:
+    if any(var not in vars for var in ('TELEGRAM_BOT_TOKEN', 'OWNER_TELEGRAM_ID', 'OWNER_TELEGRAM_NAME')):
+        raise ValueError("Missing environment variables. Check them all and try again.")
+
     bot = TeleBot(vars['TELEGRAM_BOT_TOKEN'])
     bot.set_my_commands(commands=BASE_COMMANDS)
     
@@ -103,11 +108,35 @@ def SendBannedResponse(bot: TeleBot, message: Message):
 
 # Send a start message to the user
 def Start(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, "Hello! I'm ChatGPT Telegram Bot. I can help you with your questions and tasks. Just send me a message and I'll do my best to answer it.")
+    bot.send_message(message.chat.id, "Hello! I'm ChatGPT Telegram Bot. I can help you with your questions and tasks.\n"
+                     "Just send me a message and I'll do my best to answer it.\n"
+                     "To get started, you can use the /help command to see what I can do.")
 
 # Send a help message to the user
 def Help(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, "I can help you with your questions and tasks. Just send me a message and I'll do my best to answer it.")
+    help_message = "I'm ChatGPT Telegram Bot. I can help you with your questions and tasks.\n\n"
+    help_message += "Here is the list of available commands:\n\n"
+
+    help_message += "/start - Show the start message\n"
+    help_message += "/help - Show this help message\n"
+    help_message += "/language - Change the bot's language\n"
+    help_message += "/budget - Get the bot's remeining budget\n"
+
+    if GetCategory(message.from_user.id) in ('owner', 'admin', 'user'):
+        help_message += "/reset - Reset the conversation history\n"
+        help_message += "/summarize - Summarize the conversation history\n"
+    
+    if GetCategory(message.from_user.id) in ('owner', 'admin'):
+        help_message += "/settings - Change the bot's settings\n"
+    
+    if GetCategory(message.from_user.id) in ('owner'):
+        help_message += "/users - Manage the users of the bot\n"
+
+    help_message += "\n\nYou can also send me any text, photo, audio and video messages and I'll do my best to handle them.\n"
+    help_message += "For example, I can generate a caption for a photo or transcribe a voice message to text.\n"
+    help_message += "In case of any questions or issues, please contact the bot owner."
+
+    bot.send_message(message.chat.id, help_message)
 
 # Change the bot's language for the user
 def Language(bot: TeleBot, message: Message):
@@ -123,7 +152,7 @@ def Reset(bot: TeleBot, message: Message):
         bot.send_message(message.chat.id, "Sorry, you are not allowed to use this command. Please contact the bot owner for more information.")
         return
     
-    bot.send_message(message.chat.id, "# in the future you will be able to reset the conversation history #")
+    bot.send_message(message.chat.id, "Conversation history was reset")
 
 # Summarize the conversation
 def Summarize(bot: TeleBot, message: Message):
@@ -296,11 +325,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             elif data.startswith('manage_budget_'):
                 inform = False
                 if data == 'manage_budget_increase':
-                    SetBudget(user_id, GetBudget(user_id) + Decimal(0.1))
+                    SetBudget(user_id, GetBudget(user_id) + Decimal('0.1'))
                     answer = f"Bot budget for the user @{user_name} was increased by 0.1$ and is now {GetBudget(user_id)}$"
                 else:
                     if GetBudget(user_id) > Decimal(0.1):
-                        SetBudget(user_id, GetBudget(user_id) - Decimal(0.1))
+                        SetBudget(user_id, GetBudget(user_id) - Decimal('0.1'))
                         answer = f"Bot budget for the user @{user_name} was decreased by 0.1$ and is now {GetBudget(user_id)}$"
                     else:
                         SetBudget(user_id, Decimal(0))
