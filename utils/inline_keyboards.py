@@ -34,8 +34,8 @@ def LanguageSettings() -> InlineKeyboardMarkup:
 def ModelSettings() -> InlineKeyboardMarkup:
     keyboard = [[], []]
 
-    keyboard[0].append(InlineKeyboardButton(text="GPT-3.5-Turbo", callback_data="settings_model_gpt35"))
-    keyboard[0].append(InlineKeyboardButton(text="GPT-4", callback_data="settings_model_gpt4"))
+    keyboard[0].append(InlineKeyboardButton(text="GPT-4o-mini", callback_data="settings_model_gpt-4o-mini"))
+    keyboard[0].append(InlineKeyboardButton(text="GPT-4o", callback_data="settings_model_gpt-4o"))
     keyboard[1].append(InlineKeyboardButton(text="Back", callback_data="settings"))
 
     return InlineKeyboardMarkup(keyboard)
@@ -145,8 +145,8 @@ def Language(user_id: int) -> InlineKeyboardMarkup:
 def Model(user_id: int) -> InlineKeyboardMarkup:
     keyboard = [[], []]
 
-    keyboard[0].append(InlineKeyboardButton(text="GPT-3.5-Turbo", callback_data=f"manage_model_gpt35_{user_id}"))
-    keyboard[0].append(InlineKeyboardButton(text="GPT-4", callback_data=f"manage_model_gpt4_{user_id}"))
+    keyboard[0].append(InlineKeyboardButton(text="GPT-4o-mini", callback_data=f"manage_model_gpt-4o-mini_{user_id}"))
+    keyboard[0].append(InlineKeyboardButton(text="GPT-4o", callback_data=f"manage_model_gpt-4o_{user_id}"))
     keyboard[1].append(InlineKeyboardButton(text="Leave unchanged", callback_data=f"manage_user_{user_id}"))
 
     return InlineKeyboardMarkup(keyboard)

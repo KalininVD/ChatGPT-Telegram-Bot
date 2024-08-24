@@ -217,11 +217,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
         elif data.startswith('settings_language_'):
             inform = False
             if data == 'settings_language_ru':
-                SetLanguage(user_id, 'en')
-                answer = "Bot language was set to English"
-            else:
                 SetLanguage(user_id, 'ru')
                 answer = "Bot language was set to Russian"
+            else:
+                SetLanguage(user_id, 'en')
+                answer = "Bot language was set to English"
 
         elif data == 'settings_model':
             edit = True
@@ -229,12 +229,12 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             keyboard = kb_gen.ModelSettings()
         elif data.startswith('settings_model_'):
             inform = False
-            if data == 'settings_model_gpt4':
-                SetModel(user_id, 'gpt-4')
-                answer = "Chat model for the bot was set to gpt-4"
+            if data == 'settings_model_gpt-4o':
+                SetModel(user_id, 'gpt-4o')
+                answer = "Chat model for the bot was set to gpt-4o"
             else:
-                SetModel(user_id, 'gpt-3.5-turbo')
-                answer = "Chat model for the bot was set to gpt-3.5-turbo"
+                SetModel(user_id, 'gpt-4o-mini')
+                answer = "Chat model for the bot was set to gpt-4o-mini"
 
         else:
             inform = True
@@ -311,12 +311,12 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 keyboard = kb_gen.Model(user_id)
             elif data.startswith('manage_model_'):
                 inform = False
-                if data == 'manage_model_gpt4':
-                    SetModel(user_id, 'gpt-4')
-                    answer = f"Bot model for the user @{user_name} was set to gpt-4"
+                if data == 'manage_model_gpt4o':
+                    SetModel(user_id, 'gpt-4o')
+                    answer = f"Bot model for the user @{user_name} was set to gpt-4o"
                 else:
-                    SetModel(user_id, 'gpt-3.5-turbo')
-                    answer = f"Bot model for the user @{user_name} was set to gpt-3.5-turbo"
+                    SetModel(user_id, 'gpt-4o-mini')
+                    answer = f"Bot model for the user @{user_name} was set to gpt-4o-mini"
 
             elif data == 'manage_budget':
                 edit = True
