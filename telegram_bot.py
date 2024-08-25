@@ -3,7 +3,7 @@ from decimal import Decimal
 from telebot import TeleBot
 from telebot.types import Message, CallbackQuery
 from utils.translations import get_translation as Translate
-from utils.openai import OpenAIHelper, CHAT_MODELS
+from utils.openai import OpenAIHelper
 from utils.plugins import PluginManager
 import utils.inline_keyboards as kb_gen
 from utils.telegram import (
@@ -11,7 +11,7 @@ from utils.telegram import (
     SetName, SetCategory, SetLanguage, SetModel, SetBudget,
     DeleteUserInfo
 )
-from utils.telegram import GetBaseCommands, UpdateBotCommands
+from utils.telegram import GetBaseCommands
 from utils.telegram import InitEnvVars as InitTelegramEnvVars
 from utils.yandexcloud import InitEnvVars as InitYandexCloudEnvVars
 from utils.openai import InitEnvVars as InitOpenAIEnvVars
@@ -204,15 +204,13 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
     elif data.startswith('language_'):
         inform = False
         if data == 'language_ru':
-            SetLanguage(user_id, 'ru')
-            UpdateBotCommands(bot, call.message.chat.id, user_id)
             lang = "ru"
-            answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
         else:
-            SetLanguage(user_id, 'en')
-            UpdateBotCommands(bot, call.message.chat.id, user_id)
             lang = "en"
-            answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
+        
+        SetLanguage(user_id, lang)
+        
+        answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
         
         edit = True
         text = Translate(lang, "language_command_text")
@@ -234,15 +232,13 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
         elif data.startswith('settings_language_'):
             inform = False
             if data == 'settings_language_ru':
-                SetLanguage(user_id, 'ru')
-                UpdateBotCommands(bot, call.message.chat.id, user_id)
                 lang = "ru"
-                answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
             else:
-                SetLanguage(user_id, 'en')
-                UpdateBotCommands(bot, call.message.chat.id, user_id)
                 lang = "en"
-                answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
+            
+            SetLanguage(user_id, lang)
+            
+            answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
             
             edit = True
             text = Translate(lang, "language_command_text")
@@ -319,20 +315,18 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             
             elif data == 'manage_language':
                 edit = True
-                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(GetLanguage(user_id), 'language')})"
+                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")})"
                 keyboard = kb_gen.Language(user_id, lang)
             elif data.startswith('manage_language_'):
                 inform = False
                 if data == 'manage_language_ru':
                     SetLanguage(user_id, 'ru')
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language_button_ru')}"
-                    text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_ru')})"
                 else:
                     SetLanguage(user_id, 'en')
-                    answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, 'language_button_en')}"
-                    text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, "user").lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, 'language_button_en')})"
                 
+                answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")}"
                 edit = True
+                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")})"
                 keyboard = kb_gen.Language(user_id, lang)
 
             elif data == 'manage_model':
@@ -358,19 +352,21 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 keyboard = kb_gen.Budget(user_id, lang)
             elif data.startswith('manage_budget_'):
                 inform = False
+                budget = GetBudget(user_id)
                 if data == 'manage_budget_increase':
-                    SetBudget(user_id, GetBudget(user_id) + Decimal('0.1'))
-                    answer = f"{Translate(lang, 'manage_budget_increased_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_increased_end')} {GetBudget(user_id)}$"
+                    budget += Decimal('0.1')
+                    answer = f"{Translate(lang, 'manage_budget_increased_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_increased_end')} {budget}$"
                 else:
-                    if GetBudget(user_id) > Decimal(0.1):
-                        SetBudget(user_id, GetBudget(user_id) - Decimal('0.1'))
-                        answer = f"{Translate(lang, 'manage_budget_decreased_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_decreased_end')} {GetBudget(user_id)}$"
+                    if budget > Decimal(0.1):
+                        budget -= Decimal('0.1')
+                        answer = f"{Translate(lang, 'manage_budget_decreased_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_decreased_end')} {budget}$"
                     else:
-                        SetBudget(user_id, Decimal(0))
+                        budget = Decimal(0)
                         answer = f"{Translate(lang, 'manage_budget_zero_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_zero_end')}"
                 
+                SetBudget(user_id, budget)
                 edit = True
-                text = f"{Translate(lang, 'manage_budget_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_budget_end')} {GetBudget(user_id)}$)"
+                text = f"{Translate(lang, 'manage_budget_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_budget_end')} {budget}$)"
                 keyboard = kb_gen.Budget(user_id, lang)
 
             elif data.startswith('manage_delete_'):
@@ -388,7 +384,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             elif data.startswith('manage_remove_'):
                 DeleteUserInfo(user_id)
                 inform = True
-                answer = f"{Translate(lang, "user")} @{GetName(user_id)} {Translate(lang, 'manage_removed')}"
+                answer = f"{Translate(lang, "user")} @{user_name} {Translate(lang, 'manage_removed')}"
                 edit = True
                 if data == 'manage_remove_admin':
                     text = f"{Translate(lang, "managing_start")} {Translate(lang, "admins").lower()} {Translate(lang, "managing_end")}"

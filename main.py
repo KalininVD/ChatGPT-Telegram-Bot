@@ -100,3 +100,4 @@ def handle_message(message: Message):
 def callback_query(call: CallbackQuery):
     UpdateBotCommands(bot, call.message.chat.id, call.from_user.id)
     telegram_bot.HandleCallbackQuery(bot, call)
+    UpdateBotCommands(bot, call.message.chat.id, call.from_user.id)
