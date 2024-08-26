@@ -1,7 +1,7 @@
 # Import necessary modules, classes and functions
 from decimal import Decimal
 from telebot import TeleBot, logger  # Add logger import
-from telebot.types import Message, CallbackQuery
+from telebot.types import Message, CallbackQuery, ReplyParameters
 from utils.translations import get_translation as Translate
 from utils.openai import OpenAIHelper
 from utils.plugins import PluginManager
@@ -60,7 +60,10 @@ def HandleMessage(bot: TeleBot, message: Message):
         )
         return
 
-    if message.content_type == 'text':
+    # Log the incoming message details
+    logger.info(f"Received {message.content_type} message from user {user_id}: {len(message.text)} characters long")
+
+    if message.content_type == 'text' and message.text.startswith('/'):  # Check if it's a command
         if not is_recognized_command(message.text):  # Check for unrecognized command
             logger.warning(f"Unrecognized command received from user {user_id}: {message.text}")
             bot.reply_to(message, Translate(GetLanguage(user_id), "unknown_command_response"))
@@ -93,65 +96,101 @@ def HandleMessage(bot: TeleBot, message: Message):
 
 # Handle text messages
 def HandleTextMessage(bot: TeleBot, message: Message):
-    bot.send_message(
-        chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
-        text="This type of message is not supported yet"
-    )
+    user_id = message.from_user.id
+    user_message = message.text
+
+    logger.info(f"Received message from user {user_id}: {len(user_message)} characters long")
+
+    # Ensure no conversation history is maintained
+    try:
+        # Get the selected model for the user
+        model = GetModel(user_id)
+
+        # Call the OpenAI API
+        openai_response = openai_helper.openai.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": user_message}]
+        )
+
+        # Extract the response content
+        response_content = openai_response.choices[0].message.content.strip()  # Ensure no leading/trailing whitespace
+
+        # Format the response for sending back to the user
+        formatted_response = f"ChatGPT: {response_content}"
+
+        # Send the response back to the user
+        bot.send_message(
+            chat_id=message.chat.id,
+            reply_parameters=ReplyParameters(message_id=message.message_id),
+            text=formatted_response
+        )
+
+        logger.info(f"Sent response to user {user_id}: {len(formatted_response)} characters long")
+
+    except Exception as e:
+        logger.error(f"Error sending message to OpenAI API for user {user_id}: {str(e)}", exc_info=True)
+        bot.reply_to(message, Translate(GetLanguage(user_id), "error_processing_message"))
 
 # Handle photo messages
 def HandlePhotoMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received photo message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle audio messages
 def HandleAudioMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received audio message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle voice messages
 def HandleVoiceMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received voice message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle video messages
 def HandleVideoMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received video message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle video note messages
 def HandleVideoNoteMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received video note message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle document messages
 def HandleDocumentMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received document message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
 # Handle dice messages
 def HandleDiceMessage(bot: TeleBot, message: Message):
+    logger.info(f"Received dice message from user {message.from_user.id}")
     bot.send_message(
         chat_id=message.chat.id,
-        reply_to_message_id=message.message_id,
+        reply_parameters=ReplyParameters(message_id=message.message_id),
         text="This type of message is not supported yet"
     )
 
