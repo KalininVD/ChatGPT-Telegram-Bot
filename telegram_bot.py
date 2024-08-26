@@ -9,9 +9,8 @@ import utils.inline_keyboards as kb_gen
 from utils.telegram import (
     GetName, GetCategory, GetLanguage, GetModel, GetBudget,
     SetName, SetCategory, SetLanguage, SetModel, SetBudget,
-    DeleteUserInfo
+    DeleteUserInfo, GetBaseCommands
 )
-from utils.telegram import GetBaseCommands
 from utils.telegram import InitEnvVars as InitTelegramEnvVars
 from utils.yandexcloud import InitEnvVars as InitYandexCloudEnvVars
 from utils.openai import InitEnvVars as InitOpenAIEnvVars
@@ -49,7 +48,10 @@ def HandleMessage(bot: TeleBot, message: Message):
     user_id = message.from_user.id
 
     if GetCategory(user_id) in ('banned', 'unknown'):
-        SendBannedResponse(bot, message)
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=Translate(GetLanguage(message.from_user.id), "banned_response")
+        )
         return
 
     match message.content_type:
@@ -74,44 +76,75 @@ def HandleMessage(bot: TeleBot, message: Message):
 
 # Handle text messages
 def HandleTextMessage(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, reply_to_message_id=message.message_id, text=message.text)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle photo messages
 def HandlePhotoMessage(bot: TeleBot, message: Message):
-    bot.send_photo(message.chat.id, reply_to_message_id=message.message_id, photo=message.photo[0].file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle audio messages
 def HandleAudioMessage(bot: TeleBot, message: Message):
-    bot.send_audio(message.chat.id, reply_to_message_id=message.message_id, audio=message.audio.file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle voice messages
 def HandleVoiceMessage(bot: TeleBot, message: Message):
-    bot.send_voice(message.chat.id, reply_to_message_id=message.message_id, voice=message.voice.file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle video messages
 def HandleVideoMessage(bot: TeleBot, message: Message):
-    bot.send_video(message.chat.id, reply_to_message_id=message.message_id, video=message.video.file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle video note messages
 def HandleVideoNoteMessage(bot: TeleBot, message: Message):
-    bot.send_video_note(message.chat.id, reply_to_message_id=message.message_id, video_note=message.video_note.file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle document messages
 def HandleDocumentMessage(bot: TeleBot, message: Message):
-    bot.send_document(message.chat.id, reply_to_message_id=message.message_id, document=message.document.file_id)
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 # Handle dice messages
 def HandleDiceMessage(bot: TeleBot, message: Message):
-    bot.send_dice(message.chat.id, reply_to_message_id=message.message_id, emoji=message.dice.emoji)
-
-# Send the response to any banned or unknown user
-def SendBannedResponse(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, Translate(GetLanguage(message.from_user.id), "banned_response"))
+    bot.send_message(
+        chat_id=message.chat.id,
+        reply_to_message_id=message.message_id,
+        text="This type of message is not supported yet"
+    )
 
 
 # Send a start message to the user
 def Start(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, Translate(GetLanguage(message.from_user.id), "start_message"))
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(GetLanguage(message.from_user.id), "start_message")
+    )
 
 # Send a help message to the user
 def Help(bot: TeleBot, message: Message):
@@ -136,55 +169,91 @@ def Help(bot: TeleBot, message: Message):
 
     help_message += Translate(lang, "help_message_end")
 
-    bot.send_message(message.chat.id, help_message)
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=help_message
+    )
 
 # Change the bot's language for the user
 def Language(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, Translate(GetLanguage(message.from_user.id), "language_command_text"), reply_markup=kb_gen.LanguageGeneral())
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(GetLanguage(message.from_user.id), "language_command_text"),
+        reply_markup=kb_gen.LanguageGeneral()
+    )
 
 # Get the bot's budget for the user
 def Budget(bot: TeleBot, message: Message):
-    bot.send_message(message.chat.id, f"{Translate(GetLanguage(message.from_user.id), "budget_command_text")} {GetBudget(message.from_user.id)}$")
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=f"{Translate(GetLanguage(message.from_user.id), "budget_command_text")} {GetBudget(message.from_user.id)}$"
+    )
 
 # Reset the conversation history
 def Reset(bot: TeleBot, message: Message):
     lang = GetLanguage(message.from_user.id)
 
     if GetCategory(message.from_user.id) not in ('owner', 'admin', 'user'):
-        bot.send_message(message.chat.id, Translate(lang, "command_disallowed_message"))
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=Translate(lang, "command_disallowed_message")
+        )
         return
     
-    bot.send_message(message.chat.id, Translate(lang, "reset_command_text"))
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(lang, "reset_command_text")
+    )
 
 # Summarize the conversation
 def Summarize(bot: TeleBot, message: Message):
     lang = GetLanguage(message.from_user.id)
 
     if GetCategory(message.from_user.id) not in ('owner', 'admin', 'user'):
-        bot.send_message(message.chat.id, Translate(lang, "command_disallowed_message"))
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=Translate(lang, "command_disallowed_message")
+        )
         return
     
-    bot.send_message(message.chat.id, Translate(lang, "summarize_command_text"))
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(lang, "summarize_command_text")
+    )
 
 # Get the bot's settings
 def Settings(bot: TeleBot, message: Message):
     lang = GetLanguage(message.from_user.id)
 
     if GetCategory(message.from_user.id) not in ('owner', 'admin'):
-        bot.send_message(message.chat.id, Translate(lang, "command_disallowed_message"))
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=Translate(lang, "command_disallowed_message")
+        )
         return
     
-    bot.send_message(message.chat.id, Translate(lang, "settings_command_text"), reply_markup=kb_gen.Settings(lang))
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(lang, "settings_command_text"),
+        reply_markup=kb_gen.Settings(lang)
+    )
 
 # Manage users and admins of the bot
 def Users(bot: TeleBot, message: Message):
     lang = GetLanguage(message.from_user.id)
 
     if GetCategory(message.from_user.id) != 'owner':
-        bot.send_message(message.chat.id, Translate(lang, "command_disallowed_message"))
+        bot.send_message(
+            chat_id=message.chat.id,
+            text=Translate(lang, "command_disallowed_message")
+        )
         return
     
-    bot.send_message(message.chat.id, Translate(lang, "users_command_text"), reply_markup=kb_gen.UserCategoties(lang))
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=Translate(lang, "users_command_text"),
+        reply_markup=kb_gen.UserCategoties(lang)
+    )
 
 
 # Handle the callback query
@@ -404,6 +473,16 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
         answer = Translate(lang, "callback_query_error")
 
     if inform is not None:
-        bot.answer_callback_query(call.id, answer, show_alert=inform)
+        bot.answer_callback_query(
+            callback_query_id=call.id,
+            text=answer,
+            show_alert=inform
+        )
+
     if edit:
-        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=keyboard)
+        bot.edit_message_text(
+            text=text,
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=keyboard
+        )
