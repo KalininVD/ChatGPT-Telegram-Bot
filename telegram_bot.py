@@ -1,6 +1,6 @@
 # Import necessary modules, classes and functions
 from decimal import Decimal
-from telebot import TeleBot
+from telebot import TeleBot, logger  # Add logger import
 from telebot.types import Message, CallbackQuery
 from utils.translations import get_translation as Translate
 from utils.openai import OpenAIHelper
@@ -24,7 +24,7 @@ plugin_manager: PluginManager | None = None
 def InitServiceVars(vars: dict):
     for InitFunc in (InitYandexCloudEnvVars, InitTelegramEnvVars, InitOpenAIEnvVars, InitPluginEnvVars):
         InitFunc(vars)
-    
+
     global openai_helper, plugin_manager
 
     openai_helper = OpenAIHelper()
@@ -37,11 +37,17 @@ def InitBot(vars: dict) -> TeleBot:
 
     bot = TeleBot(vars['TELEGRAM_BOT_TOKEN'])
     bot.set_my_commands(commands=GetBaseCommands())
-    
+
     SetCategory(vars['OWNER_TELEGRAM_ID'], 'owner')
     SetName(vars['OWNER_TELEGRAM_ID'], vars['OWNER_TELEGRAM_NAME'])
 
     return bot
+
+def is_recognized_command(command: str) -> bool:
+    recognized_commands = [
+        '/start', '/help', '/language', '/budget', '/reset', '/summarize', '/settings', '/users'
+    ]
+    return command in recognized_commands
 
 # Handle incoming messages
 def HandleMessage(bot: TeleBot, message: Message):
@@ -54,25 +60,36 @@ def HandleMessage(bot: TeleBot, message: Message):
         )
         return
 
-    match message.content_type:
-        case 'text':
-            HandleTextMessage(bot, message)
-        case 'photo':
-            HandlePhotoMessage(bot, message)
-        case 'audio':
-            HandleAudioMessage(bot, message)
-        case 'voice':
-            HandleVoiceMessage(bot, message)
-        case 'video':
-            HandleVideoMessage(bot, message)
-        case 'video_note':
-            HandleVideoNoteMessage(bot, message)
-        case 'document':
-            HandleDocumentMessage(bot, message)
-        case 'dice':
-            HandleDiceMessage(bot, message)
-        case _:
-            bot.reply_to(message, Translate(GetLanguage(user_id), "unknown_message_type"))
+    if message.content_type == 'text':
+        if not is_recognized_command(message.text):  # Check for unrecognized command
+            logger.warning(f"Unrecognized command received from user {user_id}: {message.text}")
+            bot.reply_to(message, Translate(GetLanguage(user_id), "unknown_command_response"))
+            return
+
+    try:
+        match message.content_type:
+            case 'text':
+                HandleTextMessage(bot, message)
+            case 'photo':
+                HandlePhotoMessage(bot, message)
+            case 'audio':
+                HandleAudioMessage(bot, message)
+            case 'voice':
+                HandleVoiceMessage(bot, message)
+            case 'video':
+                HandleVideoMessage(bot, message)
+            case 'video_note':
+                HandleVideoNoteMessage(bot, message)
+            case 'document':
+                HandleDocumentMessage(bot, message)
+            case 'dice':
+                HandleDiceMessage(bot, message)
+            case _:
+                bot.reply_to(message, Translate(GetLanguage(user_id), "unknown_message_type"))
+
+    except Exception as e:
+        logger.error(f"Error processing message from user {user_id}: {str(e)}", exc_info=True)
+        bot.reply_to(message, Translate(GetLanguage(user_id), "error_processing_message"))
 
 # Handle text messages
 def HandleTextMessage(bot: TeleBot, message: Message):
@@ -152,20 +169,20 @@ def Help(bot: TeleBot, message: Message):
 
     help_message = Translate(lang, "help_message_start")
 
-    help_message += f"/start - {Translate(lang, "start_command_description")}\n"
-    help_message += f"/help - {Translate(lang, "help_command_description")}\n"
-    help_message += f"/language - {Translate(lang, "language_command_description")}\n"
-    help_message += f"/budget - {Translate(lang, "budget_command_description")}\n"
+    help_message += f"/start - {Translate(lang, 'start_command_description')}\n"
+    help_message += f"/help - {Translate(lang, 'help_command_description')}\n"
+    help_message += f"/language - {Translate(lang, 'language_command_description')}\n"
+    help_message += f"/budget - {Translate(lang, 'budget_command_description')}\n"
 
     if GetCategory(message.from_user.id) in ('owner', 'admin', 'user'):
-        help_message += f"/reset - {Translate(lang, "reset_command_description")}\n"
-        help_message += f"/summarize - {Translate(lang, "summarize_command_description")}\n"
-    
+        help_message += f"/reset - {Translate(lang, 'reset_command_description')}\n"
+        help_message += f"/summarize - {Translate(lang, 'summarize_command_description')}\n"
+
     if GetCategory(message.from_user.id) in ('owner', 'admin'):
-        help_message += f"/settings - {Translate(lang, "settings_command_description")}\n"
-    
+        help_message += f"/settings - {Translate(lang, 'settings_command_description')}\n"
+
     if GetCategory(message.from_user.id) in ('owner'):
-        help_message += f"/users - {Translate(lang, "users_command_description")}\n"
+        help_message += f"/users - {Translate(lang, 'users_command_description')}\n"
 
     help_message += Translate(lang, "help_message_end")
 
@@ -186,7 +203,7 @@ def Language(bot: TeleBot, message: Message):
 def Budget(bot: TeleBot, message: Message):
     bot.send_message(
         chat_id=message.chat.id,
-        text=f"{Translate(GetLanguage(message.from_user.id), "budget_command_text")} {GetBudget(message.from_user.id)}$"
+        text=f"{Translate(GetLanguage(message.from_user.id), 'budget_command_text')} {GetBudget(message.from_user.id)}$"
     )
 
 # Reset the conversation history
@@ -199,7 +216,7 @@ def Reset(bot: TeleBot, message: Message):
             text=Translate(lang, "command_disallowed_message")
         )
         return
-    
+
     bot.send_message(
         chat_id=message.chat.id,
         text=Translate(lang, "reset_command_text")
@@ -215,7 +232,7 @@ def Summarize(bot: TeleBot, message: Message):
             text=Translate(lang, "command_disallowed_message")
         )
         return
-    
+
     bot.send_message(
         chat_id=message.chat.id,
         text=Translate(lang, "summarize_command_text")
@@ -231,7 +248,7 @@ def Settings(bot: TeleBot, message: Message):
             text=Translate(lang, "command_disallowed_message")
         )
         return
-    
+
     bot.send_message(
         chat_id=message.chat.id,
         text=Translate(lang, "settings_command_text"),
@@ -248,7 +265,7 @@ def Users(bot: TeleBot, message: Message):
             text=Translate(lang, "command_disallowed_message")
         )
         return
-    
+
     bot.send_message(
         chat_id=message.chat.id,
         text=Translate(lang, "users_command_text"),
@@ -276,11 +293,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             lang = "ru"
         else:
             lang = "en"
-        
+
         SetLanguage(user_id, lang)
-        
-        answer = f"{Translate(lang, "language_changed")} {Translate(lang, "language")}"
-        
+
+        answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
+
         edit = True
         text = Translate(lang, "language_command_text")
         keyboard = kb_gen.LanguageGeneral()
@@ -288,7 +305,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
     elif GetCategory(user_id) in ('unknown', 'banned', 'user'):
         inform = True
         answer = Translate(lang, "command_disallowed_message")
-    
+
     elif data == 'settings':
         edit = True
         text = Translate(lang, "settings_command_text")
@@ -304,11 +321,11 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 lang = "ru"
             else:
                 lang = "en"
-            
+
             SetLanguage(user_id, lang)
-            
+
             answer = f"{Translate(lang, 'language_changed')} {Translate(lang, 'language')}"
-            
+
             edit = True
             text = Translate(lang, "language_command_text")
             keyboard = kb_gen.LanguageSettings(lang)
@@ -324,12 +341,12 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 answer = f"{Translate(lang, 'chat_model_changed')} {model}"
             else:
                 SetModel(user_id, 'gpt-4o-mini')
-                answer = f"{Translate(lang, "chat_model_changed")} GPT-4o-mini"
+                answer = f"{Translate(lang, 'chat_model_changed')} GPT-4o-mini"
 
         else:
             inform = True
             answer = Translate(lang, "callback_query_error")
-    
+
     elif GetCategory(user_id) == 'admin':
         inform = True
         answer = Translate(lang, "command_disallowed_message")
@@ -341,13 +358,13 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
     elif data.startswith('manage_'):
         edit = True
         if data == 'manage_admins':
-            text = f"{Translate(lang, "managing_start")} {Translate(lang, "admins").lower()} {Translate(lang, "managing_end")}"
+            text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'admins').lower()} {Translate(lang, 'managing_end')}"
             keyboard = kb_gen.Admins(lang)
         elif data == 'manage_users':
-            text = f"{Translate(lang, "managing_start")} {Translate(lang, "users").lower()} {Translate(lang, "managing_end")}"
+            text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'users').lower()} {Translate(lang, 'managing_end')}"
             keyboard = kb_gen.Users(lang)
         elif data == 'manage_banned':
-            text = f"{Translate(lang, "managing_start")} {Translate(lang, "banned_users").lower()} {Translate(lang, "managing_end")}"
+            text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'banned_users').lower()} {Translate(lang, 'managing_end')}"
             keyboard = kb_gen.BannedUsers(lang)
         else:
             try:
@@ -356,7 +373,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 data = '_'.join(data.split('_')[:-1])
             except ValueError:
                 data = 'error'
-            
+
             if data == 'manage_admin':
                 text = f"{Translate(lang, 'ask_manage')} {Translate(lang, 'admin').lower()} @{user_name}?"
                 keyboard = kb_gen.Admin(user_id, lang)
@@ -366,7 +383,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             elif data == 'manage_banned':
                 text = f"{Translate(lang, 'ask_manage')} {Translate(lang, 'banned').lower()} @{user_name}?"
                 keyboard = kb_gen.Banned(user_id, lang)
-            
+
             elif data.startswith('manage_role_'):
                 inform = True
                 text = Translate(lang, "users_command_text")
@@ -381,10 +398,10 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 else:
                     SetCategory(user_id, 'banned')
                     answer = f"{Translate(lang, 'user')} @{user_name} {Translate(lang, 'manage_role_start')} {Translate(lang, 'banned')} {Translate(lang, 'manage_role_end')}"
-            
+
             elif data == 'manage_language':
                 edit = True
-                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")})"
+                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f'language_button_{GetLanguage(user_id)}')})"
                 keyboard = kb_gen.Language(user_id, lang)
             elif data.startswith('manage_language_'):
                 inform = False
@@ -392,10 +409,10 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                     SetLanguage(user_id, 'ru')
                 else:
                     SetLanguage(user_id, 'en')
-                
-                answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")}"
+
+                answer = f"{Translate(lang, 'manage_language_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_language_successful_end')} {Translate(lang, f'language_button_{GetLanguage(user_id)}')}"
                 edit = True
-                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f"language_button_{GetLanguage(user_id)}")})"
+                text = f"{Translate(lang, 'manage_language_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_language_end')} {Translate(lang, f'language_button_{GetLanguage(user_id)}')})"
                 keyboard = kb_gen.Language(user_id, lang)
 
             elif data == 'manage_model':
@@ -410,7 +427,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                 else:
                     SetModel(user_id, 'gpt-4o-mini')
                     answer = f"{Translate(lang, 'manage_model_successful_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_model_successful_end')} GPT-4o-mini"
-                
+
                 edit = True
                 text = f"{Translate(lang, 'manage_model_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_model_end')} {GetModel(user_id)})"
                 keyboard = kb_gen.Model(user_id, lang)
@@ -432,7 +449,7 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
                     else:
                         budget = Decimal(0)
                         answer = f"{Translate(lang, 'manage_budget_zero_start')} {Translate(lang, 'user').lower()} @{user_name} {Translate(lang, 'manage_budget_zero_end')}"
-                
+
                 SetBudget(user_id, budget)
                 edit = True
                 text = f"{Translate(lang, 'manage_budget_start')} {Translate(lang, 'user').lower()} @{user_name}{Translate(lang, 'manage_budget_end')} {budget}$)"
@@ -453,16 +470,16 @@ def HandleCallbackQuery(bot: TeleBot, call: CallbackQuery):
             elif data.startswith('manage_remove_'):
                 DeleteUserInfo(user_id)
                 inform = True
-                answer = f"{Translate(lang, "user")} @{user_name} {Translate(lang, 'manage_removed')}"
+                answer = f"{Translate(lang, 'user')} @{user_name} {Translate(lang, 'manage_removed')}"
                 edit = True
                 if data == 'manage_remove_admin':
-                    text = f"{Translate(lang, "managing_start")} {Translate(lang, "admins").lower()} {Translate(lang, "managing_end")}"
+                    text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'admins').lower()} {Translate(lang, 'managing_end')}"
                     keyboard = kb_gen.Admins(lang)
                 elif data == 'manage_remove_user':
-                    text = f"{Translate(lang, "managing_start")} {Translate(lang, "users").lower()} {Translate(lang, "managing_end")}"
+                    text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'users').lower()} {Translate(lang, 'managing_end')}"
                     keyboard = kb_gen.Users(lang)
                 else:
-                    text = f"{Translate(lang, "managing_start")} {Translate(lang, "banned_users").lower()} {Translate(lang, "managing_end")}"
+                    text = f"{Translate(lang, 'managing_start')} {Translate(lang, 'banned_users').lower()} {Translate(lang, 'managing_end')}"
                     keyboard = kb_gen.BannedUsers(lang)
 
             else:

@@ -73,7 +73,9 @@
             "yes_button": "Yes",
             "no_button": "No",
             "budget_increase": "Add 0.1$",
-            "budget_decrease": "Remove 0.1$"
+            "budget_decrease": "Remove 0.1$",
+            "unknown_command_response": "Sorry, I didn't recognize that command.",
+            "error_processing_message": "An error occurred while processing your message. Please try again later."
         }
     },
     {
@@ -150,7 +152,9 @@
             "yes_button": "Да",
             "no_button": "Нет",
             "budget_increase": "Добавить 0.1$",
-            "budget_decrease": "Убрать 0.1$"
+            "budget_decrease": "Убрать 0.1$",
+            "unknown_command_response": "Извините, я не распознал эту команду.",
+            "error_processing_message": "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже."
         }
     }
 ]
