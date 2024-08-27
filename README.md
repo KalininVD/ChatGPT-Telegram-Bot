@@ -1,60 +1,85 @@
 ```markdown
 # ChatGPT-Telegram-Bot
 
-The ChatGPT-Telegram-Bot is a Telegram bot designed to enable seamless interaction with the ChatGPT model via the OpenAI API. Hosted on Yandex Cloud, this bot supports multiple languages and user role management, allowing users to send various types of media and receive contextually relevant responses powered by OpenAI's language model.
+The ChatGPT-Telegram-Bot is a Telegram bot that allows users to interact with the ChatGPT model via the OpenAI API. Hosted on Yandex Cloud, this bot enables users to send various types of queries and receive intelligent responses, providing a seamless conversational experience while managing their settings and budget.
 
 ## Overview
 
-The architecture of the ChatGPT-Telegram-Bot follows a modular design, with separate modules handling different functionalities, such as command handling, user management, translations, and OpenAI interactions. The bot is developed using Python and utilizes the `pyTelegramBotAPI` library for Telegram interactions. It integrates with the OpenAI API for generating responses and uses Yandex Cloud's DynamoDB for persistent data storage.
+The architecture of the ChatGPT-Telegram-Bot is modular, with separate components handling user interaction, command processing, OpenAI API communication, and database management. The bot is developed using Python and leverages several technologies, including the `pyTelegramBotAPI` for Telegram interactions, `boto3` for DynamoDB interactions and for making Yandex Cloud API calls. 
 
 The project structure includes the following key components:
-- **`main.py`**: The entry point for initializing the bot and setting up command handlers.
-- **`telegram_bot.py`**: Implements the core functionalities of the bot, including message handling and command processing.
-- **`utils/`**: A directory containing utility modules for translations, OpenAI interactions, user management, and Yandex Cloud integration.
-- **`translations.json`**: Contains localization data for supporting multiple languages.
+- `main.py`: The entry point for initializing the bot and setting up command handlers.
+- `telegram_bot.py`: Contains the core logic for handling incoming messages and commands.
+- `utils/`: A directory containing helper modules for managing translations, OpenAI interactions, and database operations.
+- `translations.json`: A file for localization, providing translations for user-facing messages in multiple languages.
 
 ## Features
 
 1. **User Interaction**: Users can send text messages, photos, audio, and video to the bot, which processes and responds accordingly.
-2. **Command Handling**: The bot supports various commands such as `/start`, `/help`, `/language`, `/budget`, `/reset`, `/summarize`, `/settings`, and `/users`.
-3. **Multilingual Support**: Currently supports English and Russian, allowing users to switch languages easily.
-4. **User Role Management**: Different user roles (owner, admin, user, banned) are managed, providing tailored command sets.
-5. **Budget Management**: Users can view and manage their interaction budget.
-6. **Inline Keyboards**: Provides intuitive navigation through inline keyboards for command selection.
-7. **OpenAI Integration**: Communicates with the OpenAI API to process user queries and generate responses.
-8. **Database Integration**: User information is stored in a DynamoDB database for persistent management.
-9. **Logging System**: Implements a logging system for tracing application actions within Yandex Cloud.
+2. **Command Handling**: Supports commands like `/start`, `/help`, `/language`, `/budget`, `/reset`, `/summarize`, `/settings`, and `/users`.
+3. **Multilingual Support**: Responds in multiple languages, currently supporting English and Russian.
+4. **User Role Management**: Differentiates user roles (owner, admin, user, banned) and provides command sets based on roles.
+5. **Budget Management**: Users can view and manage their budget for interactions, with automatic checks before API calls.
+6. **Inline Keyboards**: Utilizes inline keyboards for intuitive navigation and command selection.
+7. **OpenAI Integration**: Interacts with the OpenAI API to generate responses based on user input.
+8. **Database Integration**: User data is stored in a DynamoDB database on Yandex Cloud.
+9. **Logging System**: Implements a logging mechanism for tracing application behavior and errors.
 
-## Getting started
-
-### Requirements
-
-To run the ChatGPT-Telegram-Bot, ensure you have the following technologies installed:
-- Python
-- Yandex Cloud CLI
-- Required Python libraries as listed in `requirements.txt`
 
 ### Quickstart
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd ChatGPT-Telegram-Bot
-   ```
+1. Create an account on Yandex Cloud and setup a service account with a static secret key. Create a table for users data in YDB and save the DocumentAPI endpoint of the database.
 
-2. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. Create an API key in your OpenAI account.
 
-3. Set up your environment variables for the bot, including API keys for OpenAI, Yandex Cloud, and Telegram.
+3. Find a working proxy server from any country where OpenAI is available.
 
-4. Run the bot:
-   ```bash
-   python main.py
-   ```
+4. Create new Yandex Cloud Function with the files from this repository. Fill in the environment variables:
+   - `TELEGRAM_BOT_TOKEN`
+   - `OWNER_TELEGRAM_ID`
+   - `OWNER_TELEGRAM_NAME`
+   - `OPENAI_API_KEY`
+   - `PROXY`
+   - `ACCESS_KEY_ID`
+   - `SECRET_ACCESS_KEY`
+   - `DOCUMENT_API_ENDPOINT`
+
+5. Setup Yandex Cloud API Gateway with the following configuration:
+   ```openapi: 3.0.0
+   info:
+   title: Sample API
+   version: 1.0.0
+   servers:
+   - url: <gateway_url>
+   paths:
+   /for-chatgpt-telegram-bot-function:
+      post:
+         x-yc-apigateway-integration:
+         type: cloud_functions
+         function_id: <function_id>
+         service_account_id: <service_account_id>
+         operationId: for-chatgpt-telegram-bot-function```
+
+6. Connect the Telegram bot to the API Gateway (set up the webhook):
+  ```python
+  import requests
+
+   url = "https://api.telegram.org/bot{token}/{method}".format(
+      token="<YOUR_BOT_TOKEN>",
+      method = "setWebhook"
+      #method="getWebhookinfo"
+      #method = "deleteWebhook"
+   )
+
+   data = {"url": "<url_from_gateway>/for-chatgpt-telegram-bot-function"}
+
+   r = requests.post(url, data=data)
+   print(r.json())
+  ```
+
+  7. Start the function in Yandex Cloud Functions and enjoy!
 
 ### License
 
-Copyright (c) 2024.
+Copyright (c) 2024. All rights reserved.
 ```

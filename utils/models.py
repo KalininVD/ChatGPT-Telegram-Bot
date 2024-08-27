@@ -37,7 +37,7 @@ class AudioModelInfo(ModelInfo):
         self.price = Decimal(price)
 
 # Define the dictionary of all available OpenAI models
-OPENAI_MODELS = {
+OPENAI_MODELS: dict[str, ChatModelInfo | ImageModelInfo | AudioModelInfo] = {
     'gpt-4o': ChatModelInfo('gpt-4o', '5', '15', 128000, 4096, True),
     'gpt-4o-2024-05-13': ChatModelInfo('gpt-4o-2024-05-13', '5', '15', 128000, 4096, True),
     'gpt-4o-2024-08-06': ChatModelInfo('gpt-4o-2024-08-06', '2.5', '10', 128000, 16384, True),

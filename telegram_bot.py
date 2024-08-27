@@ -1,6 +1,6 @@
 # Import necessary modules, classes and functions
 from decimal import Decimal
-from telebot import TeleBot, logger  # Add logger import
+from telebot import TeleBot, logger
 from telebot.types import Message, CallbackQuery, ReplyParameters
 from utils.translations import get_translation as Translate
 from utils.openai import OpenAIHelper
@@ -27,7 +27,7 @@ def InitServiceVars(vars: dict):
 
     global openai_helper, plugin_manager
 
-    openai_helper = OpenAIHelper()
+    openai_helper = OpenAIHelper(logger)
     plugin_manager = PluginManager()
 
 # Initialize the bot
@@ -40,6 +40,7 @@ def InitBot(vars: dict) -> TeleBot:
 
     SetCategory(vars['OWNER_TELEGRAM_ID'], 'owner')
     SetName(vars['OWNER_TELEGRAM_ID'], vars['OWNER_TELEGRAM_NAME'])
+    SetBudget(vars['OWNER_TELEGRAM_ID'], Decimal('100')) # Put your budget here (Infinity is not supported yet...)
 
     return bot
 
@@ -101,35 +102,45 @@ def HandleTextMessage(bot: TeleBot, message: Message):
 
     logger.info(f"Received message from user {user_id}: {len(user_message)} characters long")
 
-    # Ensure no conversation history is maintained
-    try:
-        # Get the selected model for the user
-        model = GetModel(user_id)
+    budget = GetBudget(user_id)
+    budget_exceeded = budget <= Decimal(0)
+    if not budget_exceeded:
+        try:
+            model = GetModel(user_id)
 
-        # Call the OpenAI API
-        openai_response = openai_helper.openai.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": user_message}]
-        )
+            # Call the OpenAI API through the OpenAIHelper
+            response, usage = openai_helper.get_text_response(
+                user_id=user_id,
+                message=user_message,
+                model_name=model
+            )
 
-        # Extract the response content
-        response_content = openai_response.choices[0].message.content.strip()  # Ensure no leading/trailing whitespace
+            # Calculate the cost of the response and change the budget
+            cost = openai_helper.calculate_text_cost(usage, model)
+            budget_exceeded = cost > budget
+            SetBudget(user_id, budget - cost)
 
-        # Format the response for sending back to the user
-        formatted_response = f"ChatGPT: {response_content}"
+            # Send the response back to the user
+            bot.send_message(
+                chat_id=message.chat.id,
+                reply_parameters=ReplyParameters(message_id=message.message_id),
+                text=response
+            )
 
-        # Send the response back to the user
+            logger.info(f"Sent response to user {user_id}: {len(response)} characters long")
+
+        except Exception as e:
+            logger.error(f"Error processing message for user {user_id}: {str(e)}", exc_info=True)
+            bot.reply_to(message, Translate(GetLanguage(user_id), "error_processing_message"))
+    
+    # Send a message to the user if he has exceeded his budget
+    if budget_exceeded:
         bot.send_message(
             chat_id=message.chat.id,
-            reply_parameters=ReplyParameters(message_id=message.message_id),
-            text=formatted_response
+            text=Translate(GetLanguage(user_id), "budget_exceeded")
         )
 
-        logger.info(f"Sent response to user {user_id}: {len(formatted_response)} characters long")
-
-    except Exception as e:
-        logger.error(f"Error sending message to OpenAI API for user {user_id}: {str(e)}", exc_info=True)
-        bot.reply_to(message, Translate(GetLanguage(user_id), "error_processing_message"))
+        logger.warning(f"User {user_id} has exceeded his budget")
 
 # Handle photo messages
 def HandlePhotoMessage(bot: TeleBot, message: Message):
@@ -255,6 +266,8 @@ def Reset(bot: TeleBot, message: Message):
             text=Translate(lang, "command_disallowed_message")
         )
         return
+    
+    openai_helper.reset_conversation(message.from_user.id)
 
     bot.send_message(
         chat_id=message.chat.id,

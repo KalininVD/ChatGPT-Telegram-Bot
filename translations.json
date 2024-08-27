@@ -75,7 +75,8 @@
             "budget_increase": "Add 0.1$",
             "budget_decrease": "Remove 0.1$",
             "unknown_command_response": "Sorry, I didn't recognize that command.",
-            "error_processing_message": "An error occurred while processing your message. Please try again later."
+            "error_processing_message": "An error occurred while processing your message. Please try again later.",
+            "budget_exceeded": "Warning: you have exceeded your budget."
         }
     },
     {
@@ -154,7 +155,8 @@
             "budget_increase": "Добавить 0.1$",
             "budget_decrease": "Убрать 0.1$",
             "unknown_command_response": "Извините, я не распознал эту команду.",
-            "error_processing_message": "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже."
+            "error_processing_message": "Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте еще раз позже.",
+            "budget_exceeded": "Внимание: вы превысили свой бюджет."
         }
     }
 ]
