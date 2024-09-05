@@ -4,6 +4,7 @@ from telebot import TeleBot
 
 import utils.telegram.keyboards as kb_gen
 from utils.users import UserInfo
+from utils.telegram.commands import UpdateBotCommands
 from utils.translations import GetTranslation as Translate
 from utils.yandexcloud.user_management import (
     SetUserLanguage, SetUserRole, SetUserBudget,
@@ -105,6 +106,7 @@ def HandleManageRoleCallbackQuery(bot: TeleBot, call_id: int, data: list[str], m
                 show_alert=True,
             )
             if role != manage_user_info['user_role']:
+                UpdateBotCommands(bot, manage_user_info['chat_id'], role, manage_user_info['bot_language'])
                 bot.edit_message_text(
                     text=f"{Translate(language, f"manage_{role}_role")}{manage_user_info['user_name']}?",
                     chat_id=user_info['chat_id'],
@@ -141,6 +143,7 @@ def HandleManageLanguageCallbackQuery(bot: TeleBot, call_id: int, data: list[str
                 show_alert=True,
             )
             if lang != manage_user_info['bot_language']:
+                UpdateBotCommands(bot, manage_user_info['chat_id'], manage_user_info['user_role'], lang)
                 bot.edit_message_text(
                     text=f"{Translate(language, f"manage_{manage_user_info['user_role']}_language")}{manage_user_info['user_name']}? ({Translate(language, 'current_value')} {Translate(language, f"button_language_{lang}")})",
                     chat_id=user_info['chat_id'],
