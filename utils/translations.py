@@ -1,33 +1,42 @@
-# Import necessary modules
-from os import path
 import json
-import logging  # Import logging module
+from logging import Logger
+from os import path
 
-# Configure logging
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
-
-# Get the absolute path to the translations.json file
-filepath = path.abspath(path.join(path.dirname(__file__), "..", "translations.json"))
+# Define services
+logger: Logger
+translations: dict[str, dict[str, str]] = {}
+supported_languages: dict[str, str] = {}
 
 # Load translations from the JSON file
-translations = json.load(open(filepath))
+def LoadTranslations():
+    filepath = path.abspath(path.join(path.dirname(__file__), "..", "translations.json"))
 
-# Retrieve message based on user language
-def get_translation(language_code: str, key: str) -> str:
-    if language_code not in [translation['code'] for translation in translations]:
-        logger.warning(f"Language code '{language_code}' is not recognized.")
-        return translations[0]['content'].get(key, f"Translation missing for key: {key}")
+    for translation in json.load(open(filepath, encoding='utf-8')):
+        code = translation['code']
+        language = translation['language']
+        content = translation['content']
 
-    for translation in translations:
-        if translation['code'] == language_code:
-            if key == 'language':
-                return translation['language']
-            if key in translation['content']:
-                return translation['content'][key]
+        translations[code] = dict(
+            (message, content[message]) for message in content
+        )
 
-    translation = translations[0]['content'].get(key)
+        supported_languages[code] = language
+
+    logger.info(f"Successfully loaded {len(translations)} translations from file {filepath}")
+
+# Get the message translation based on user language
+def GetTranslation(language: str, message: str) -> str:
+    if language not in supported_languages:
+        logger.warning(f"Language '{language}' is not supported yet. Using 'en' instead.")
+        language = 'en'
+
+    if message == 'language':
+        return supported_languages[language]
+
+    translation = translations[language].get(message, None)
+
     if translation is None:
-        logger.warning(f"Missing translation for key '{key}' in language '{language_code}'.")
+        logger.warning(f"Missing translation for message '{message}' in language '{language}'.")
+        translation = f"No translation found for message: {message}"
 
-    return translation if translation else f"Translation missing for key: {key}"
+    return translation

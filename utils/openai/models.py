@@ -1,4 +1,3 @@
-# Import necessary modules, classes and functions
 from decimal import Decimal
 
 # Define the base class for the model info
@@ -28,7 +27,7 @@ class ImageModelInfo(ModelInfo):
         self.price = Decimal(price)
         self.max_output_images = max_output_images
 
-# Class for audio models info (TTS, STT and translation)
+# Class for audio models info (translation, STT and TTS)
 class AudioModelInfo(ModelInfo):
     def __init__(self, task: str, model_name: str, price: Decimal | str):
         super().__init__(model_name, 'audio')
@@ -60,23 +59,41 @@ OPENAI_MODELS: dict[str, ChatModelInfo | ImageModelInfo | AudioModelInfo] = {
 
     'gpt-3.5-turbo-instruct': ChatModelInfo('gpt-3.5-turbo-instruct', '1.5', '2', 4096, 4096),
 
-    'dall-e-3-Standard-1024×1024': ImageModelInfo('dall-e-3', 'standard', '1024x1024', '0.04', 1),
-    'dall-e-3-Standard-1024×1792': ImageModelInfo('dall-e-3', 'standard', '1024x1792', '0.08', 1),
-    'dall-e-3-Standard-1792×1024': ImageModelInfo('dall-e-3', 'standard', '1792×1024', '0.08', 1),
+    'dall-e-3-standard-1024-1024': ImageModelInfo('dall-e-3', 'standard', '1024-1024', '0.04', 1),
+    'dall-e-3-standard-1024-1792': ImageModelInfo('dall-e-3', 'standard', '1024-1792', '0.08', 1),
+    'dall-e-3-standard-1792-1024': ImageModelInfo('dall-e-3', 'standard', '1792-1024', '0.08', 1),
 
-    'dall-e-3-HD-1024×1024': ImageModelInfo('dall-e-3', 'HD', '1024×1024', '0.08', 1),
-    'dall-e-3-HD-1024×1792': ImageModelInfo('dall-e-3', 'HD', '1024×1792', '0.12', 1),
-    'dall-e-3-HD-1792×1024': ImageModelInfo('dall-e-3', 'HD', '1792×1024', '0.12', 1),
+    'dall-e-3-hd-1024-1024': ImageModelInfo('dall-e-3', 'HD', '1024-1024', '0.08', 1),
+    'dall-e-3-hd-1024-1792': ImageModelInfo('dall-e-3', 'HD', '1024-1792', '0.12', 1),
+    'dall-e-3-hd-1792-1024': ImageModelInfo('dall-e-3', 'HD', '1792-1024', '0.12', 1),
 
-    'dall-e-2-1024×1024': ImageModelInfo('dall-e-2', None, '1024×1024', '0.02', 10),
-    'dall-e-2-512×512': ImageModelInfo('dall-e-2', None, '512×512', '0.018', 10),
-    'dall-e-2-256×256': ImageModelInfo('dall-e-2', None, '256×256', '0.016', 10),
+    'dall-e-2-1024-1024': ImageModelInfo('dall-e-2', None, '1024-1024', '0.02', 10),
+    'dall-e-2-512-512': ImageModelInfo('dall-e-2', None, '512-512', '0.018', 10),
+    'dall-e-2-256-256': ImageModelInfo('dall-e-2', None, '256-256', '0.016', 10),
 
-    'Whisper': AudioModelInfo('transcription', 'whisper-1', '0.006'),
-    'whisper-1': AudioModelInfo('transcription', 'whisper-1', '0.006'),
-    'Whisper': AudioModelInfo('translation', 'whisper-1', '0.006'),
     'whisper-1': AudioModelInfo('translation', 'whisper-1', '0.006'),
+    'whisper-1-stt': AudioModelInfo('stt', 'whisper-1', '0.006'),
 
     'tts-1': AudioModelInfo('tts', 'tts-1', '15'),
     'tts-1-hd': AudioModelInfo('tts', 'tts-1-hd', '30'),
 }
+
+# Define the list of all available models
+ALL_MODELS = list(OPENAI_MODELS.keys())
+
+# Define all models by their type
+CHAT_MODELS, VISION_MODELS, IMAGE_MODELS, TRANSLATE_MODELS, STT_MODELS, TTS_MODELS = [], [], [], [], [], []
+for model in ALL_MODELS:
+    if OPENAI_MODELS[model].model_type == 'chat':
+        CHAT_MODELS.append(model)
+        if OPENAI_MODELS[model].vision_available:
+            VISION_MODELS.append(model)
+    elif OPENAI_MODELS[model].model_type == 'image':
+        IMAGE_MODELS.append(model)
+    elif OPENAI_MODELS[model].model_type == 'audio':
+        if OPENAI_MODELS[model].task == 'translation':
+            TRANSLATE_MODELS.append(model)
+        elif OPENAI_MODELS[model].task == 'stt':
+            STT_MODELS.append(model)
+        elif OPENAI_MODELS[model].task == 'tts':
+            TTS_MODELS.append(model)
