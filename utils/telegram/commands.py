@@ -111,7 +111,7 @@ def Reset(bot: TeleBot, chat_id: int, language: str):
 
 # Summarize the conversation
 def Summarize(bot: TeleBot, user_id: int, chat_id: int, language: str):
-    utils.openai.helper.SummarizeConversation(user_id)
+    utils.openai.helper.SummarizeConversation(user_id, chat_id)
 
     bot.send_message(
         chat_id=chat_id,

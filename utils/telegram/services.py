@@ -46,7 +46,9 @@ def SetupOwnerInfo():
     if owner_id is None:
         raise ValueError("Owner Telegram ID is not set")
 
-    AddNewUser(owner_id, 'owner', 0, 'owner')
+    owner = GetUserByID(owner_id)
+    if owner is None:
+        AddNewUser(owner_id, 'owner', 0, 'owner')
 
 # Get the user's information by ID
 def GetUserInfoByID(user_id: int | Decimal, user_name: str = "unknown", chat_id: int = -1) -> UserInfo:

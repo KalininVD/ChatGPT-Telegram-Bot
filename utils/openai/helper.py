@@ -5,19 +5,20 @@ from openai import OpenAI
 from openai.types import CompletionUsage
 
 from utils.openai.models import ChatModelInfo, OPENAI_MODELS, CHAT_MODELS
+from utils.openai.conversation import Conversation, Message, MessageInfo
 from utils.plugins.plugin_manager import PluginManager
+from utils.yandexcloud.conversation_management import ClearConversation, GetConversation, AddMessagesToConversation
 
 # Define services
 logger: Logger
 api_key: str
 proxy: str
 openai: OpenAI
-conversations: dict[int, list[dict[str, str]]] = {}
 plugin_manager: PluginManager
 
 # Initialize OpenAI Helper
 def InitHelper():
-    global openai, conversations, plugin_manager
+    global openai, plugin_manager
 
     openai = OpenAI(
         api_key=api_key,
@@ -41,52 +42,106 @@ def CalculateTextCost(usage: CompletionUsage, model: str) -> Decimal:
 
     return total_cost
 
-# Get the text response from the OpenAI API
-def GetTextResponse(user_id: int, message: str, chat_model: str) -> tuple[str, CompletionUsage]:
-    if user_id not in conversations:
-        ResetConversation(user_id)
-
-    conversations[user_id].append(
-        {
-            "role": "user",
-            "content": message
-        }
+# Service method for formatting the conversation to the OpenAI API format
+def FormatConversation(conversation: Conversation) -> list[dict[str, str]]:
+    return list(
+        map(
+            lambda message: {
+                'role': message['info']['user_role'],
+                'content': message['info']['content'],
+            },
+            conversation['messages']
+        )
     )
+
+# Get the text response from the OpenAI API
+def GetTextResponse(user_id: int, chat_id: int, message_id: int, request: str, chat_model: str) -> tuple[str, CompletionUsage]:
+    conversation = GetConversation(chat_id)
+
+    add_system_prompt = not any(conversation['messages'])
+    if add_system_prompt:
+        system_prompt = Message(
+            id=Decimal('0'),
+            info=MessageInfo(
+                user_role='system',
+                message_type='text',
+                content="You are a helpful assistant.",
+            ),
+        )
+        conversation['messages'] = [system_prompt]
+    
+    last_message_id = conversation['messages'][-1]['id']
+
+    request_message = Message(
+        id=last_message_id + Decimal('1'),
+        info=MessageInfo(
+            user_role='user',
+            message_type='text',
+            content=request,
+        ),
+    )
+
+    conversation['messages'].append(request_message)
 
     # Call OpenAI API
     response = openai.chat.completions.create(
         model=chat_model,
-        messages=conversations[user_id]
+        messages=FormatConversation(conversation),
     )
     reply = response.choices[0].message.content
     usage = response.usage
 
-    conversations[user_id].append(
-        {
-            "role": "assistant",
-            "content": reply
-        }
+    reply_message = Message(
+        id=last_message_id + Decimal('2'),
+        info=MessageInfo(
+            user_role='assistant',
+            message_type='text',
+            content=reply,
+        ),
     )
 
-    logger.info(f"OpenaAI API call made for user {user_id}. Message length: {len(message)}, response length: {len(reply)}")
+    if add_system_prompt:
+        AddMessagesToConversation(
+            chat_id=chat_id,
+            messages=[system_prompt, request_message, reply_message],
+        )
+    else:
+        AddMessagesToConversation(
+            chat_id=chat_id,
+            messages=[request_message, reply_message],
+        )
+
+    logger.info(f"OpenaAI API call made for user {user_id}. Message length: {len(request)}, response length: {len(reply)}.")
     return reply, usage
 
 # Reset the conversation history with custom system prompt
-def ResetConversation(user_id: int, system_prompt: str | None = None):
-    conversations[user_id] = [
-        {
-            "role": "system",
-            "content": system_prompt or "You are a helpful assistant."
-        }
-    ]
+def ResetConversation(user_id: int, chat_id: int, system_prompt: str | None = None):
+    ClearConversation(chat_id)
 
-    logger.info(f"Successfully reset conversation history for user #{user_id} with custom system prompt")
+    AddMessagesToConversation(
+        chat_id=chat_id,
+        messages=[
+            Message(
+                id=Decimal('0'),
+                info=MessageInfo(
+                    user_role='system',
+                    message_type='text',
+                    content=system_prompt or "You are a helpful assistant.",
+                ),
+            ),
+        ],
+    )
+
+    logger.info(f"Successfully reset conversation history for user #{user_id} with {'custom' if system_prompt else 'default'} system prompt")
 
 # Summarize the conversation history
-def SummarizeConversation(user_id: int):
+def SummarizeConversation(user_id: int, chat_id: int):
+    messages = GetConversation(chat_id)['messages']
+
     ResetConversation(
         user_id=user_id,
-        system_prompt=conversations[user_id][0]['content'] if user_id in conversations else None,
+        chat_id=chat_id,
+        system_prompt=messages[0]['info']['content'] if any(messages) else None,
     )
     
     logger.info(f"Successfully summarized conversation history for user #{user_id}")

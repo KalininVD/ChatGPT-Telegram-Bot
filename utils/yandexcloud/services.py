@@ -1,7 +1,10 @@
 from logging import Logger
+from decimal import Decimal
 from boto3 import Session
 
+import utils.yandexcloud.conversation_management
 import utils.yandexcloud.user_management
+from utils.yandexcloud.db_table_columns import PartitionKey, Attribute
 
 # Define environment variables
 access_key_id: str | None = None
@@ -30,6 +33,7 @@ def SetupLogger(external_logger: Logger):
 
     logger = external_logger
     utils.yandexcloud.user_management.logger = logger
+    utils.yandexcloud.conversation_management.logger = logger
 
 
 # Service method for initializing boto session and docapi database
@@ -59,3 +63,47 @@ def InitServices():
     utils.yandexcloud.user_management.user_settings_table = docapi_database.Table('user_settings')
 
     logger.info("Successfully initialized Yandex Cloud Services")
+
+# Service method for checking if a table exists
+def DoesTableExist(table_name: str) -> bool:
+    if docapi_database is None:
+        InitServices()
+    
+    return table_name in map(lambda table: table.name, docapi_database.tables.all())
+
+# Service method for creating a new table
+def CreateNewTable(table_name: str):
+    table = docapi_database.create_table(
+        TableName=table_name,
+        KeySchema=[PartitionKey(AttributeName='id', KeyType='HASH')],
+        AttributeDefinitions=[
+            Attribute(AttributeName='id', AttributeType='N'),
+            Attribute(AttributeName='message_type', AttributeType='S'),
+            Attribute(AttributeName='user_role', AttributeType='S'),
+            Attribute(AttributeName='content', AttributeType='S'),
+        ],
+    )
+
+    logger.info(f"Successfully created new table '{table_name}' in the database")
+
+    return table
+
+# Service method for deleting a table
+def DeleteTable(table_name: str, table = None):
+    if not DoesTableExist(table_name):
+        return
+    
+    if table is None:
+        table = docapi_database.Table(table_name)
+    table.delete()
+
+    logger.info(f"Successfully deleted table '{table_name}'")
+
+# Service method for getting a table for the specified chat ID
+def GetTable(chat_id: int | Decimal | str):
+    table_name = str(chat_id)
+
+    if DoesTableExist(table_name):
+        return docapi_database.Table(table_name)
+    
+    return CreateNewTable(table_name)

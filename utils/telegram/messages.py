@@ -27,7 +27,9 @@ def HandleTextMessage(bot: TeleBot, message: Message, user_info: UserInfo):
             # Call the OpenAI API through the OpenAIHelper
             response, usage = utils.openai.helper.GetTextResponse(
                 user_id=user_id,
-                message=user_message,
+                chat_id=user_info['chat_id'],
+                message_id=message.message_id,
+                request=user_message,
                 chat_model=chat_model,
             )
 

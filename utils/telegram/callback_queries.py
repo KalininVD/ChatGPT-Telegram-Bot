@@ -123,6 +123,7 @@ def HandleResetCallbackQuery(bot: TeleBot, call_id: int, data: list[str], messag
         if system_prompt is not None:
             utils.openai.helper.ResetConversation(
                 user_id=user_id,
+                chat_id=user_info['chat_id'],
                 system_prompt=system_prompt,
             )
 

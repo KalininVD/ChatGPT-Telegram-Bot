@@ -17,7 +17,7 @@ def GetUserByID(user_id: int | Decimal) -> User | None:
 
     response = table.get_item(
         Key = {
-            'user_id': Decimal(user_id)
+            'id': Decimal(user_id)
         }
     )
 
@@ -46,7 +46,7 @@ def AddNewUser(user_id: str | int | Decimal, user_name: str, chat_id: str | int 
 
     response = table.put_item(
         Item = {
-            'user_id': Decimal(user_id),
+            'id': Decimal(user_id),
             'info': user_info,
         }
     )
@@ -65,7 +65,7 @@ def UpdateUserInfo(user_id: int | Decimal, user_info: UserInfo) -> bool:
 
     response = table.update_item(
         Key = {
-            'user_id': Decimal(user_id),
+            'id': Decimal(user_id),
         },
         UpdateExpression = "set " + ', '.join(
             f"info.{key} = :{value}" for key, value in {
@@ -362,7 +362,7 @@ def GetUsersByCategory(user_role: str) -> list[User]:
 
     scan_kwargs = {
         'FilterExpression': Key('info.user_role').eq(user_role),
-        'ProjectionExpression': "user_id, " + ', '.join(
+        'ProjectionExpression': "id, " + ', '.join(
             f"info.{key}" for key in INFO_DEFAULTS.keys()
         ),
     }
@@ -378,13 +378,7 @@ def GetUsersByCategory(user_role: str) -> list[User]:
 
         response = table.scan(**scan_kwargs)
         
-        for user in response.get('Items', []):
-            users.append(
-                User(
-                    id=user['user_id'],
-                    info=UserInfo(user['info']),
-                )
-            )
+        users.extend(response.get('Items', []))
 
         start_key = response.get('LastEvaluatedKey', None)
         done = start_key is None
@@ -398,7 +392,7 @@ def DeleteUser(user_id: int | Decimal) -> bool:
 
     response = table.delete_item(
         Key = {
-            'user_id': Decimal(user_id),
+            'id': Decimal(user_id),
         }
     )
 
