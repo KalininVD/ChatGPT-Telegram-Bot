@@ -119,7 +119,7 @@ def SettingsTokenLimit(language: str = 'en') -> InlineKeyboardMarkup:
 def Reset(language: str = 'en') -> InlineKeyboardMarkup:
     return quick_markup(
         dict(
-            (prompt[language]['brief'], {'callback_data': f"reset_{prompt[language]['brief'].lower()}"}) for prompt in SYSTEM_PROMPTS
+            (prompt[language]['brief'], {'callback_data': f"reset_{prompt['en']['brief'].lower()}"}) for prompt in SYSTEM_PROMPTS
         ),
         row_width=1,
     )

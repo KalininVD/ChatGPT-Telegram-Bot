@@ -92,13 +92,53 @@ I'll answer as the world-famous <specific field> scientists with <most prestigio
 
 <Пошаговый ответ с глубокими знаниями, с КОНКРЕТНЫМИ деталями>."""
         }
+    },
+    {
+        "en": {
+            "brief": "Advanced",
+            "prompt": """For every question I ask I want you to think through the problem.
+Please wrap this thought process in xml like tags like this:
+
+<thinking>
+</thinking>
+
+The thought process must involve three actions:
+
+1. Create a plan for how to answer the users question or query. Ensure this plan has at least four steps but no more than 10. Each step can be a maximum of one sentence. You may optionally review this plan after you list the steps.
+2. Using Chain Of Thought and your plan think through the question or query step by step.
+3. Review your thoughts critically to ensure you have made no mistakes in your reasoning of solving the problem.""",
+        },
+        "ru": {
+            "brief": "Продвинутый",
+            "prompt": """Для каждого вопроса я хочу, чтобы ты обдумал проблему.
+Пожалуйста, оберни этот процесс мыслей в теги xml в следующем виде:
+
+<thinking>
+</thinking>
+
+Мыслительный процесс должен включать три действия:
+
+1. Создай план, как ответить на вопрос или запрос пользователя. Убедись, что этот план состоит не менее чем из четырех шагов, но не более чем из 10. Каждый шаг может состоять максимум из одного предложения. По желанию ты можешь просмотреть этот план после того, как перечислишь шаги.
+2. Используя цепочку размышлений и свой план, продумай вопрос или запрос шаг за шагом.
+3. Критически проанализируй свои мысли, чтобы убедиться, что ты не допустил ошибок в своих рассуждениях о решении проблемы.""",
+        }
+    },
+    {
+        "en": {
+            "brief": "Reflection",
+            "prompt": "You are a world-class AI system, capable of complex reasoning and reflection. Reason through the query inside <thinking> tags, and then provide your final response inside <output> tags. If you detect that you made a mistake in your reasoning at any point, correct yourself inside <reflection> tags.",
+        },
+        "ru": {
+            "brief": "Размышления",
+            "prompt": "Вы - система искусственного интеллекта мирового класса, способная к сложным рассуждениям и размышлениям. Размышляйте над запросом в тегах <thinking>, а затем представьте свой окончательный ответ в тегах <output>. Если в какой-то момент вы обнаружите, что допустили ошибку в своих рассуждениях, исправьте себя в тегах <reflection>.",
+        }
     }
 ]
 
 # Get the system prompt for the specified brief description
 def GetSystemPrompt(brief: str, language: str) -> str | None:
     for prompt in SYSTEM_PROMPTS:
-        if prompt[language]['brief'].lower() == brief.lower():
+        if prompt['en']['brief'].lower() == brief.lower():
             return prompt[language]['prompt']
     
     return None
