@@ -51,7 +51,7 @@ def GetConversation(chat_id: int | Decimal):
 
     return Conversation(
         chat_id=chat_id,
-        messages=messages,
+        messages=sorted(messages, key=lambda message: message['id']),
     )
 
 # Clear the conversation in the specified chat

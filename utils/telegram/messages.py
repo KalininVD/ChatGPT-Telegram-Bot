@@ -2,11 +2,11 @@ from decimal import Decimal
 from logging import Logger
 from telebot import TeleBot
 from telebot.types import Message, ReplyParameters
+from telebot.util import smart_split, antiflood
 
 import utils.openai.helper
 from utils.users import UserInfo
 from utils.translations import GetTranslation as Translate
-from utils.yandexcloud.user_management import SetUserBudget
 
 # Define logger
 logger: Logger
@@ -22,29 +22,31 @@ def HandleTextMessage(bot: TeleBot, message: Message, user_info: UserInfo):
     budget_exceeded = budget <= Decimal(0)
     if not budget_exceeded:
         try:
+            bot.send_chat_action(message.chat.id, 'typing')
+
             chat_model = user_info['chat_model']
 
             # Call the OpenAI API through the OpenAIHelper
-            response, usage = utils.openai.helper.GetTextResponse(
+            response = utils.openai.helper.GetTextResponse(
                 user_id=user_id,
                 chat_id=user_info['chat_id'],
-                message_id=message.message_id,
                 request=user_message,
                 chat_model=chat_model,
+                temperature=user_info['temperature'],
+                max_tokens=user_info['token_limit'],
+                budget=user_info['user_budget'],
             )
-
-            # Calculate the cost of the response and change the budget
-            cost = utils.openai.helper.CalculateTextCost(usage, chat_model)
-            budget_exceeded = cost > budget
-            user_info['user_budget'] = budget - cost
-            SetUserBudget(user_id, user_info['user_budget'])
 
             # Send the response back to the user
-            bot.send_message(
-                chat_id=user_info['chat_id'],
-                reply_parameters=ReplyParameters(message_id=message.message_id),
-                text=response,
-            )
+            sent_message = message
+            for chunk in smart_split(response):
+                sent_message = antiflood(
+                    bot.send_message,
+                    chat_id=user_info['chat_id'],
+                    reply_parameters=ReplyParameters(message_id=sent_message.message_id),
+                    text=chunk,
+                    parse_mode='Markdown',
+                )
 
             logger.info(f"Sent text response to user #{user_id}: {len(response)} characters long")
 

@@ -147,7 +147,7 @@ def HandleCommand(message: Message):
                     command_disallowed = True
             case '/summarize':
                 if user_info['user_role'] in ('owner', 'admin', 'user', ):
-                    Summarize(bot, user_id, chat_id, language)
+                    Summarize(bot, user_id, chat_id, language, user_info['user_budget'])
                 else:
                     command_disallowed = True
             case '/settings':
